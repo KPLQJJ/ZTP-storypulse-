@@ -61,6 +61,7 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 - 2026-05-14: AI 审稿接口 — POST /novels/{id}/reviews，七维诊断调用 DeepSeek V4 Pro，含积分预估/扣减、Token 统计、审稿结果存储
 - 2026-05-14: 登录系统 — POST /auth/register + /auth/login + GET /auth/me，bcrypt 密码哈希 + JWT Token，防重复注册
 - 2026-05-14: 充值系统 — 用户充值/管理端充值/余额查询/交易流水，FOR UPDATE 防并发 + balance_after 审计链 + 事务原子性
+- 2026-05-14: Novel CRUD 接口 — 创建/列表/详情/更新/删除作品，JWT 认证 + 作者校验
 
 ## 协作方式
 - Feature 分支 + PR 流程，Claude 全程执行 git 操作
@@ -73,6 +74,7 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 2. ~~AI 审稿接口（调钟振华的 skill）~~ ✅
 3. ~~登录系统~~ ✅
 4. ~~充值系统~~ ✅
-5. 前端页面
+5. ~~Novel CRUD 接口~~ ✅
+6. 前端页面
 6. 双向同步 + 会员云存储
 7. usage_logs 表（MVP 后加）
