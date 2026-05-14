@@ -35,4 +35,4 @@ metadata:
 10. ProfilePage — 个人中心
 
 ## 待后端补充
-- Novel CRUD 接口（开发中）
+- ~~Novel CRUD 接口~~ ✅ 已完成（2026-05-14）
