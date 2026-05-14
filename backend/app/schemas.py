@@ -2,6 +2,42 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+# ── Novel ──────────────────────────────────────────────
+
+class NovelCreate(BaseModel):
+    title: str
+    genre: str
+    description: str = ""
+
+
+class NovelUpdate(BaseModel):
+    title: str | None = None
+    genre: str | None = None
+    description: str | None = None
+    status: str | None = None
+
+
+class NovelOut(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    genre: str
+    description: str | None = None
+    status: str
+    word_count: int
+    cover_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class NovelDetail(NovelOut):
+    chapters: list["ChapterOut"] = []
+
+
+# ── Chapter ────────────────────────────────────────────
+
 class ChapterOut(BaseModel):
     id: int
     novel_id: int
