@@ -52,3 +52,35 @@ class ReviewOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Auth ──────────────────────────────────────────────────
+
+class RegisterRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: int
+    username: str
+    role: str
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    email: str
+    role: str
+    is_active: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
