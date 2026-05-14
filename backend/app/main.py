@@ -5,10 +5,12 @@ from app.models import *  # noqa: F401, F403 — 注册所有模型
 from app.modules.chapters import router as chapters_router
 from app.modules.reviews import router as reviews_router
 from app.modules.auth import router as auth_router
+from app.modules.credits import router as credits_router
 
 app = FastAPI(title="StoryPulse API", version="0.1.0")
 
 app.include_router(auth_router)
+app.include_router(credits_router)
 app.include_router(chapters_router)
 app.include_router(reviews_router)
 

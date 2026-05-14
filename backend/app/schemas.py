@@ -84,3 +84,34 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Credits ────────────────────────────────────────────────
+
+class RechargeRequest(BaseModel):
+    amount: float
+    description: str = "充值"
+
+    # 金额校验：单笔下限/上限
+    @property
+    def is_valid(self) -> bool:
+        return 0.01 <= self.amount <= 10000.0
+
+
+class BalanceResponse(BaseModel):
+    user_id: int
+    balance: float
+
+
+class TransactionOut(BaseModel):
+    id: int
+    user_id: int
+    amount: float
+    balance_after: float
+    type: str
+    reference_type: str | None = None
+    reference_id: int | None = None
+    description: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
