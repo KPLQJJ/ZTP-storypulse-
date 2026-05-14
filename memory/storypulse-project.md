@@ -60,18 +60,19 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 - 2026-05-14: 文件上传接口 — POST /novels/{id}/chapters/upload，支持 .txt/.md，UTF-8/GBK 编码，10MB 上限，自动统计字数
 - 2026-05-14: AI 审稿接口 — POST /novels/{id}/reviews，七维诊断调用 DeepSeek V4 Pro，含积分预估/扣减、Token 统计、审稿结果存储
 - 2026-05-14: 登录系统 — POST /auth/register + /auth/login + GET /auth/me，bcrypt 密码哈希 + JWT Token，防重复注册
+- 2026-05-14: 充值系统 — 用户充值/管理端充值/余额查询/交易流水，FOR UPDATE 防并发 + balance_after 审计链 + 事务原子性
 
 ## 协作方式
-- 两人通过 GitHub（dev 分支）协作，均使用 Claude CLI
+- Feature 分支 + PR 流程，Claude 全程执行 git 操作
 - 项目记忆存放在 `memory/` 目录，随 Git 同步
-- 标准循环：`git pull` → Claude 开发 → `git add memory/ && git commit && git push`
-- CLAUDE.md 位于项目根目录，两端 Claude 共享规则
+- 开发前：`git checkout dev && git pull` → `git checkout -b feature-xxx`
+- 开发后：commit → push → GitHub 提 PR → merge
 
 ## 待开发（按优先级）
 1. ~~文件上传接口（.txt / .md 解析）~~ ✅
 2. ~~AI 审稿接口（调钟振华的 skill）~~ ✅
 3. ~~登录系统~~ ✅
-4. 充值系统
+4. ~~充值系统~~ ✅
 5. 前端页面
 6. 双向同步 + 会员云存储
 7. usage_logs 表（MVP 后加）
