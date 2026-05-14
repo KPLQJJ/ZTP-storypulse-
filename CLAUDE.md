@@ -17,12 +17,20 @@
 - `memory/MEMORY.md` — 索引，每次先读这个了解项目状态
 - `memory/*.md` — 各分类记忆
 
-**团队协作流程：**
-1. 开始工作前：`git pull` 拉取最新记忆
-2. 工作过程中：Claude 会自动读写 `memory/` 下的文件
-3. 完成工作后：`git add memory/ && git commit -m "update memory" && git push`
+**团队协作流程（Feature 分支 + PR）：**
+1. 开始工作前：`git checkout dev && git pull`
+2. 开 feature 分支：`git checkout -b feature-xxx`
+3. 在 feature 分支上开发（Claude 自动读写 memory/）
+4. 完成开发后：
+   ```bash
+   git add memory/ && git commit -m "feat: xxx"
+   git push -u origin feature-xxx
+   ```
+5. 去 GitHub 提 Pull Request → review → 合并到 dev
+6. 合并后 `git checkout dev && git pull` 即可同步对方的改动
 
-两人都遵守这个流程，记忆就能保持同步。
+两人各自在自己的 feature 分支上工作，互不干扰。
+关掉 PR 即可废弃，合并后 dev 同时包含两人的工作。
 
 ## 启动方式
 ```bash
