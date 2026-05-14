@@ -2,8 +2,13 @@ from fastapi import FastAPI
 
 from app.database import engine, Base
 from app.models import *  # noqa: F401, F403 — 注册所有模型
+from app.modules.chapters import router as chapters_router
+from app.modules.reviews import router as reviews_router
 
 app = FastAPI(title="StoryPulse API", version="0.1.0")
+
+app.include_router(chapters_router)
+app.include_router(reviews_router)
 
 
 @app.on_event("startup")

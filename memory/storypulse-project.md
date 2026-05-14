@@ -57,6 +57,8 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 - 2026-05-14: SQLAlchemy ORM 模型（8 张表全覆盖）
 - 2026-05-14: FastAPI 后端骨架（config + database + main.py）
 - 2026-05-14: Git 协作流程搭建 — CLAUDE.md + memory/ 入仓，双人 Git 同步机制就绪
+- 2026-05-14: 文件上传接口 — POST /novels/{id}/chapters/upload，支持 .txt/.md，UTF-8/GBK 编码，10MB 上限，自动统计字数
+- 2026-05-14: AI 审稿接口 — POST /novels/{id}/reviews，七维诊断调用 DeepSeek V4 Pro，含积分预估/扣减、Token 统计、审稿结果存储
 
 ## 协作方式
 - 两人通过 GitHub（dev 分支）协作，均使用 Claude CLI
@@ -65,8 +67,8 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 - CLAUDE.md 位于项目根目录，两端 Claude 共享规则
 
 ## 待开发（按优先级）
-1. 文件上传接口（.txt / .md 解析）
-2. AI 审稿接口（调钟振华的 skill）
+1. ~~文件上传接口（.txt / .md 解析）~~ ✅
+2. ~~AI 审稿接口（调钟振华的 skill）~~ ✅
 3. 登录系统
 4. 充值系统
 5. 前端页面
