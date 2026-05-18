@@ -1,0 +1,197 @@
+@import 'tailwindcss';
+
+/* ===== Typography =====
+ * Headings: Songti/Serif — literary, refined
+ * Body: System Chinese sans — clean, readable
+ * All fonts fall back to system defaults gracefully
+ */
+@theme inline {
+  --font-heading: 'Noto Serif SC', 'Source Han Serif SC', 'STSong', 'Songti SC', 'SimSun', 'KaiTi', serif;
+  --font-body: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+}
+
+/* ===== Brand: Terracotta / Sienna — warm, literary, distinctive ===== */
+@theme inline {
+  --color-brand-50: #fdf7f3;
+  --color-brand-100: #fae9dd;
+  --color-brand-200: #f4d4bc;
+  --color-brand-300: #e8b994;
+  --color-brand-400: #d89b6e;
+  --color-brand-500: #c46b3c;
+  --color-brand-600: #a8592b;
+  --color-brand-700: #8b4520;
+  --color-brand-800: #6e3416;
+  --color-brand-900: #4d230e;
+}
+
+/* ===== Sidebar: Warm ink — not cold slate ===== */
+@theme inline {
+  --color-sidebar-bg: #1c1814;
+  --color-sidebar-fg: #d6d0c8;
+  --color-sidebar-active: #c46b3c;
+  --color-sidebar-hover: #2d2824;
+}
+
+/* ===== Radii ===== */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ===== shadcn/ui CSS variable bridge ===== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ===== Light theme: Warm paper aesthetic ===== */
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(0.985 0.003 84);
+  --foreground: oklch(0.18 0.02 45);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 45);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 45);
+  --primary: oklch(0.45 0.13 40);
+  --primary-foreground: oklch(0.985 0.003 84);
+  --secondary: oklch(0.955 0.01 75);
+  --secondary-foreground: oklch(0.3 0.03 45);
+  --muted: oklch(0.955 0.01 75);
+  --muted-foreground: oklch(0.55 0.03 45);
+  --accent: oklch(0.955 0.01 75);
+  --accent-foreground: oklch(0.3 0.03 45);
+  --destructive: oklch(0.5 0.18 25);
+  --border: oklch(0.92 0.01 75);
+  --input: oklch(0.92 0.01 75);
+  --ring: oklch(0.55 0.13 40);
+  --chart-1: oklch(0.55 0.15 35);
+  --chart-2: oklch(0.5 0.1 180);
+  --chart-3: oklch(0.4 0.06 220);
+  --chart-4: oklch(0.7 0.12 85);
+  --chart-5: oklch(0.65 0.12 70);
+  --sidebar: oklch(0.14 0.01 45);
+  --sidebar-foreground: oklch(0.9 0.01 75);
+  --sidebar-primary: oklch(0.55 0.13 40);
+  --sidebar-primary-foreground: oklch(0.985 0.003 84);
+  --sidebar-accent: oklch(0.22 0.01 45);
+  --sidebar-accent-foreground: oklch(0.9 0.01 75);
+  --sidebar-border: oklch(0.25 0.01 45);
+  --sidebar-ring: oklch(0.55 0.13 40);
+}
+
+/* ===== Dark theme ===== */
+.dark {
+  --background: oklch(0.16 0.01 45);
+  --foreground: oklch(0.9 0.01 75);
+  --card: oklch(0.2 0.01 45);
+  --card-foreground: oklch(0.9 0.01 75);
+  --popover: oklch(0.2 0.01 45);
+  --popover-foreground: oklch(0.9 0.01 75);
+  --primary: oklch(0.7 0.1 40);
+  --primary-foreground: oklch(0.16 0.01 45);
+  --secondary: oklch(0.25 0.01 45);
+  --secondary-foreground: oklch(0.9 0.01 75);
+  --muted: oklch(0.25 0.01 45);
+  --muted-foreground: oklch(0.65 0.02 45);
+  --accent: oklch(0.25 0.01 45);
+  --accent-foreground: oklch(0.9 0.01 75);
+  --destructive: oklch(0.55 0.18 25);
+  --border: oklch(0.3 0.01 45);
+  --input: oklch(0.3 0.01 45);
+  --ring: oklch(0.7 0.1 40);
+  --chart-1: oklch(0.65 0.15 35);
+  --chart-2: oklch(0.6 0.1 180);
+  --chart-3: oklch(0.5 0.06 220);
+  --chart-4: oklch(0.75 0.12 85);
+  --chart-5: oklch(0.7 0.12 70);
+  --sidebar: oklch(0.14 0.01 45);
+  --sidebar-foreground: oklch(0.9 0.01 75);
+  --sidebar-primary: oklch(0.7 0.1 40);
+  --sidebar-primary-foreground: oklch(0.985 0.003 84);
+  --sidebar-accent: oklch(0.22 0.01 45);
+  --sidebar-accent-foreground: oklch(0.9 0.01 75);
+  --sidebar-border: oklch(0.25 0.01 45);
+  --sidebar-ring: oklch(0.7 0.1 40);
+}
+
+/* ===== Base layer ===== */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* ===== Page background: Paper fiber texture =====
+ * Layered subtle grain using SVG noise + warm radial gradient
+ * Simulates the tactile feel of handmade paper
+ */
+.bg-page {
+  background-color: #faf8f4;
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ===== Heading typography ===== */
+h1, h2, h3, h4, h5, h6,
+[data-slot="card-title"],
+[data-slot="sheet-title"] {
+  font-family: var(--font-heading);
+}
+
+/* Touch-friendly chapter menu: hidden on mouse, visible on touch */
+@media (hover: hover) {
+  .chapter-menu-btn {
+    opacity: 0;
+  }
+  .chapter-row:hover .chapter-menu-btn {
+    opacity: 1;
+  }
+}
+@media (hover: none) {
+  .chapter-menu-btn {
+    opacity: 1;
+  }
+}
