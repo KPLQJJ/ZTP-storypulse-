@@ -57,6 +57,23 @@ class ChapterUploadResponse(BaseModel):
     chapter: ChapterOut
 
 
+class ChaptersUploadResponse(BaseModel):
+    message: str
+    chapters: list[ChapterOut]
+    errors: list[str] = []
+
+
+class ChapterDetail(ChapterOut):
+    content: str
+    content_hash: str | None = None
+    updated_at: datetime
+
+
+class ChapterUpdate(BaseModel):
+    title: str | None = None
+    content: str | None = None
+
+
 # ── Review ──────────────────────────────────────────────
 
 class ReviewRequest(BaseModel):
