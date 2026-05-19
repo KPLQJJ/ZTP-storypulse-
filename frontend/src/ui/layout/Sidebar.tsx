@@ -11,59 +11,76 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Cpu,
 } from 'lucide-react'
+import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { useUiStore } from '@/infrastructure/stores/ui-store'
 import { useAuthStore } from '@/infrastructure/stores/auth-store'
+import { useLogout } from '@/features/auth/hooks'
 
-export interface MenuItem {
+interface MenuItem {
   label: string
   path: string
   icon: React.ComponentType<{ className?: string }>
 }
 
-export interface MenuSection {
+interface MenuSection {
   title: string
   items: MenuItem[]
 }
 
-export const menuSections: MenuSection[] = [
-  {
-    title: '创作管理',
-    items: [
-      { label: '作品列表', path: '/novels', icon: BookOpen },
-      { label: '新建作品', path: '/novels/new', icon: PenLine },
-    ],
-  },
-  {
-    title: 'AI 审稿',
-    items: [
-      { label: '发起审稿', path: '/reviews/new', icon: Sparkles },
-      { label: '审稿历史', path: '/reviews', icon: History },
-    ],
-  },
-  {
-    title: '积分中心',
-    items: [
-      { label: '积分余额', path: '/credits', icon: Coins },
-      { label: '充值中心', path: '/credits/recharge', icon: Wallet },
-      { label: '交易流水', path: '/credits/transactions', icon: Receipt },
-    ],
-  },
-  {
-    title: '账户',
-    items: [
-      { label: '个人中心', path: '/profile', icon: User },
-    ],
-  },
-]
-
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUiStore()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const handleLogout = useLogout()
   const location = useLocation()
+
+  const menuSections = useMemo<MenuSection[]>(() => {
+    const sections: MenuSection[] = [
+      {
+        title: '创作管理',
+        items: [
+          { label: '作品列表', path: '/novels', icon: BookOpen },
+          { label: '新建作品', path: '/novels/new', icon: PenLine },
+        ],
+      },
+      {
+        title: 'AI 审稿',
+        items: [
+          { label: '发起审稿', path: '/reviews/new', icon: Sparkles },
+          { label: '审稿历史', path: '/reviews', icon: History },
+        ],
+      },
+      {
+        title: '积分中心',
+        items: [
+          { label: '积分余额', path: '/credits', icon: Coins },
+          { label: '充值中心', path: '/credits/recharge', icon: Wallet },
+          { label: '交易流水', path: '/credits/transactions', icon: Receipt },
+        ],
+      },
+      {
+        title: '账户',
+        items: [
+          { label: '个人中心', path: '/profile', icon: User },
+        ],
+      },
+    ]
+
+    if (user?.role === 'admin') {
+      sections.push({
+        title: '后台管理',
+        items: [
+          { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
+        ],
+      })
+    }
+
+    return sections
+  }, [user?.role])
 
   return (
     <aside
@@ -110,7 +127,8 @@ export function Sidebar() {
                   (item.path === '/reviews' && /^\/reviews\/\d+$/.test(location.pathname)) ||
                   (item.path === '/credits' && location.pathname === '/credits') ||
                   (item.path === '/credits/recharge' && location.pathname === '/credits/recharge') ||
-                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions')
+                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions') ||
+                  (item.path === '/admin/ai-models' && location.pathname.startsWith('/admin/ai-models'))
 
                 return (
                   <li key={item.path}>
@@ -160,7 +178,7 @@ export function Sidebar() {
         ) : null}
         {!sidebarCollapsed && (
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-fg/60 hover:bg-sidebar-hover hover:text-white transition-colors"
           >
             <LogOut className="h-4 w-4" />

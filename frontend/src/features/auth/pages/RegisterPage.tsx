@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PenLine } from 'lucide-react'
 
 export default function RegisterPage() {
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const registerMutation = useRegister()
 
   const {
@@ -22,7 +22,7 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
   })
 
-  if (token) {
+  if (user) {
     return <Navigate to="/novels" replace />
   }
 
@@ -74,7 +74,7 @@ export default function RegisterPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="至少 6 位"
+                placeholder="至少 8 位，含大写字母和数字"
                 {...register('password')}
                 className="mt-1.5"
               />

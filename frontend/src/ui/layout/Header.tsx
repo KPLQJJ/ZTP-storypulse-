@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { useUiStore } from '@/infrastructure/stores/ui-store'
 import { useAuthStore } from '@/infrastructure/stores/auth-store'
 import { useBalance } from '@/features/credits/hooks'
+import { useLogout } from '@/features/auth/hooks'
 import { formatCredits } from '@/core/domain/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,7 +40,8 @@ function getPageTitle(pathname: string): string {
 
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { sidebarCollapsed } = useUiStore()
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const handleLogout = useLogout()
   const { data: balance } = useBalance()
   const location = useLocation()
 
@@ -97,7 +99,7 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                 <Link to="/profile">个人中心</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} className="text-destructive">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                 退出登录
               </DropdownMenuItem>
             </DropdownMenuContent>

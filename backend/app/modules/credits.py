@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models.billing import CreditTransaction
+from app.models.billing import CreditTransaction, AuditLog
 from app.models.user import User
 from app.schemas import RechargeRequest, BalanceResponse, TransactionOut
 from app.modules.auth import get_current_user
@@ -50,12 +50,6 @@ def recharge(
     - 整个操作在一个事务中：锁余额 → 写交易 → 提交，保证原子性
     - balance_after = 当前余额 + 充值额，形成可审计链
     """
-    if not req.is_valid:
-        raise HTTPException(
-            status_code=400,
-            detail=f"充值金额须在 0.01 ~ 10000.0 之间",
-        )
-    # 四舍五入到小数点后两位，防止浮点精度问题
     amount = round(req.amount, 2)
 
     # 加锁读取当前余额
@@ -137,6 +131,7 @@ def admin_get_balance(
 def admin_recharge(
     user_id: int,
     req: RechargeRequest,
+    request: Request,
     admin: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -147,11 +142,6 @@ def admin_recharge(
     if not target:
         raise HTTPException(status_code=404, detail="用户不存在")
 
-    if not req.is_valid:
-        raise HTTPException(
-            status_code=400,
-            detail=f"充值金额须在 0.01 ~ 10000.0 之间",
-        )
     amount = round(req.amount, 2)
 
     # 加锁读余额
@@ -168,6 +158,16 @@ def admin_recharge(
         description=desc,
     )
     db.add(txn)
+
+    db.add(AuditLog(
+        user_id=admin.id,
+        action="admin_recharge",
+        target_type="user",
+        target_id=user_id,
+        detail=f"管理员 {admin.username} 为用户 {target.username} 充值 {amount} 积分",
+        ip_address=request.client.host if request.client else None,
+    ))
+
     db.commit()
     db.refresh(txn)
 
