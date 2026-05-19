@@ -16,6 +16,11 @@ class User(Base):
     avatar_url = Column(String(500))
     role = Column(String(20), nullable=False, default="writer")
     is_active = Column(Integer, nullable=False, default=1, server_default=text("1"))
+    failed_login_attempts = Column(Integer, nullable=False, default=0)
+    locked_until = Column(DateTime, nullable=True)
+    token_version = Column(Integer, nullable=False, default=0)
+    totp_secret = Column(String(32), nullable=True)
+    totp_enabled = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 

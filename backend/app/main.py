@@ -1,29 +1,64 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.config import settings
+from app.limiter import limiter
+from app.middleware import SecurityHeadersMiddleware
+from app.logging_middleware import RequestLoggingMiddleware
+from app.exceptions import (
+    http_exception_handler,
+    validation_exception_handler,
+    unhandled_exception_handler,
+)
 from app.database import engine, Base
 from app.models import *  # noqa: F401, F403 — 注册所有模型
 from app.modules.chapters import router as chapters_router
 from app.modules.reviews import router as reviews_router
 from app.modules.auth import router as auth_router
 from app.modules.credits import router as credits_router
+from app.modules.ai_models import router as ai_models_router
 from app.modules.novels import router as novels_router
 
 app = FastAPI(title="StoryPulse API", version="0.1.0")
 
+# Request logging (generate correlation ID)
+app.add_middleware(RequestLoggingMiddleware)
+
+# Security headers (outermost)
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Host validation
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 app.include_router(auth_router)
 app.include_router(credits_router)
+app.include_router(ai_models_router)
 app.include_router(novels_router)
 app.include_router(chapters_router)
 app.include_router(reviews_router)
+
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 @app.on_event("startup")

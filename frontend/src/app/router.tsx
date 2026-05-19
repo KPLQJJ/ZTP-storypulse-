@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/ui/layout/AppLayout'
 import { AuthGuard } from '@/ui/layout/AuthGuard'
+import { AdminGuard } from '@/ui/layout/AdminGuard'
 import { AppProviders } from './providers'
 
 // Lazy-loaded page placeholders (replaced by real pages as we build features)
@@ -15,6 +16,7 @@ const ReviewDetailPage = lazy(() => import('@/features/reviews/pages/ReviewDetai
 const ReviewListPage = lazy(() => import('@/features/reviews/pages/ReviewListPage'))
 const CreditsPage = lazy(() => import('@/features/credits/pages/CreditsPage'))
 const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage'))
+const AiModelsAdminPage = lazy(() => import('@/features/ai-models/pages/AiModelsAdminPage'))
 
 function Loading() {
   return (
@@ -55,6 +57,13 @@ export function AppRouter() {
 
               {/* Profile */}
               <Route path="/profile" element={<ProfilePage />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route element={<AdminGuard />}>
+              <Route element={<AppLayout />}>
+                <Route path="/admin/ai-models" element={<AiModelsAdminPage />} />
+              </Route>
             </Route>
           </Route>
         </Routes>

@@ -1,8 +1,12 @@
 import json
-from fastapi import APIRouter, HTTPException, Depends
+import logging
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 
+from app.limiter import limiter
 from app.database import get_db
+
+logger = logging.getLogger(__name__)
 from app.models.content import Novel, Chapter
 from app.models.review import Review
 from app.models.billing import AiModel, CreditTransaction
@@ -28,7 +32,9 @@ def _get_user_balance(db: Session, user_id: int, lock: bool = False) -> float:
 
 
 @router.post("/novels/{novel_id}/reviews", response_model=ReviewOut, status_code=201)
+@limiter.limit("20/day;5/hour")
 async def create_review(
+    request: Request,
     novel_id: int,
     req: ReviewRequest,
     user: User = Depends(get_current_user),
@@ -43,14 +49,12 @@ async def create_review(
     if not req.chapter_ids:
         raise HTTPException(status_code=400, detail="请至少选择一个章节")
 
-    # 查定价
-    model = (
-        db.query(AiModel).filter(AiModel.model_id == req.model_name).first()
-    )
-    if not model:
+    # 查定价（通过整数 ID 反查）
+    model = db.get(AiModel, req.model_id)
+    if not model or model.is_active != 1:
         raise HTTPException(
             status_code=400,
-            detail=f"模型 '{req.model_name}' 未配置，请先在 ai_models 表中添加定价",
+            detail="所选模型不存在或已停用",
         )
 
     # 取章节
@@ -80,12 +84,15 @@ async def create_review(
         for ch in chapters
     ]
 
-    # 校验余额（预检）
-    balance = _get_user_balance(db, novel.user_id)
-    estimated_cost = (
+    # 预估成本（慷慨 1.5x 防止超扣）
+    base_estimated_cost = (
         sum(c["word_count"] for c in chapter_data) / 1000 * model.credits_per_1k_input
-        + 2000 / 1000 * model.credits_per_1k_output  # 预估输出 2000 tokens
+        + 2000 / 1000 * model.credits_per_1k_output
     )
+    estimated_cost = round(base_estimated_cost * 1.5, 2)
+
+    # 锁定余额防并发超扣（AI 调用前锁）
+    balance = _get_user_balance(db, novel.user_id, lock=True)
     if balance < estimated_cost:
         raise HTTPException(
             status_code=402,
@@ -94,11 +101,15 @@ async def create_review(
 
     # 调 AI 审稿
     try:
-        review_data = await call_ai_review(chapter_data, req.model_name)
+        review_data = await call_ai_review(chapter_data, model.model_id)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("AI review ValueError: %s", e)
+        db.rollback()
+        raise HTTPException(status_code=500, detail="AI 审稿配置错误，请联系管理员")
     except RuntimeError as e:
-        raise HTTPException(status_code=502, detail=f"AI 服务异常：{e}")
+        logger.error("AI review RuntimeError: %s", e)
+        db.rollback()
+        raise HTTPException(status_code=502, detail="AI 服务暂时不可用，请稍后重试")
 
     result = review_data["result"]
     tokens_in = review_data["tokens_input"]
@@ -111,11 +122,6 @@ async def create_review(
     )
     credits_cost = round(credits_cost, 2)
 
-    # 再次校验余额（加锁防并发超扣）
-    balance = _get_user_balance(db, novel.user_id, lock=True)
-    if balance < credits_cost:
-        raise HTTPException(status_code=402, detail="积分不足")
-
     new_balance = round(balance - credits_cost, 2)
 
     # 存审稿报告
@@ -124,7 +130,7 @@ async def create_review(
         chapter_ids=json.dumps(req.chapter_ids),
         overall_score=result.get("overall_score", 0),
         dimensions=json.dumps(result.get("dimensions", []), ensure_ascii=False),
-        model_used=req.model_name,
+        model_used=model.model_id,
         tokens_input=tokens_in,
         tokens_output=tokens_out,
         credits_cost=credits_cost,

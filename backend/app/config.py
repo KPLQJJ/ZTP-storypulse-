@@ -1,25 +1,16 @@
-import os
-import secrets
-
-# 数据库文件路径（相对于 backend/ 目录）
-DB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(os.path.dirname(DB_DIR), "storypulse.db")
-
-# SQLite 开发环境 / PostgreSQL 生产环境
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
-
-# JWT 配置
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", secrets.token_urlsafe(32))
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = 60 * 24  # 24 小时
+from pydantic_settings import BaseSettings
 
 
-class Settings:
-    database_url: str = DATABASE_URL
-    secret_key: str = JWT_SECRET_KEY
-    algorithm: str = JWT_ALGORITHM
-    jwt_expire_minutes: int = JWT_EXPIRE_MINUTES
+class Settings(BaseSettings):
+    database_url: str = "sqlite:///./storypulse.db"
+    jwt_secret_key: str  # 必填 — 不设则启动失败，杜绝密钥随机生成
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24  # 24 小时
     debug: bool = False
+    allowed_origins: list[str] = ["http://localhost:5173"]
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
 settings = Settings()

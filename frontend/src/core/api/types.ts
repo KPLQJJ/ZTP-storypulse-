@@ -102,7 +102,7 @@ export interface ChapterUpdate {
 
 export interface ReviewRequest {
   chapter_ids: number[]
-  model_name: string
+  model_id: number
 }
 
 export interface DimensionScore {
@@ -160,4 +160,36 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   size: number
+}
+
+// ── AI Models ─────────────────────────────────────────
+
+export interface AiModelPublicOut {
+  id: number
+  name: string
+  provider: string
+}
+
+export interface AiModelAdminOut extends AiModelPublicOut {
+  model_id: string
+  credits_per_1k_input: number
+  credits_per_1k_output: number
+  is_active: number
+  created_at: string
+}
+
+export interface AiModelCreate {
+  name: string
+  provider: string
+  model_id: string
+  credits_per_1k_input?: number
+  credits_per_1k_output?: number
+}
+
+export interface AiModelUpdate {
+  name?: string
+  provider?: string
+  model_id?: string
+  credits_per_1k_input?: number
+  credits_per_1k_output?: number
 }

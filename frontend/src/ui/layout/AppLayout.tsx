@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -8,13 +8,79 @@ import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { useUiStore } from '@/infrastructure/stores/ui-store'
 import { useAuthStore } from '@/infrastructure/stores/auth-store'
-import { menuSections } from './Sidebar'
-import type { MenuItem, MenuSection } from './Sidebar'
-import { LogOut } from 'lucide-react'
+import { useLogout } from '@/features/auth/hooks'
+import {
+  BookOpen,
+  PenLine,
+  Sparkles,
+  History,
+  Coins,
+  Wallet,
+  Receipt,
+  User,
+  LogOut,
+  Cpu,
+} from 'lucide-react'
+
+interface MenuItem {
+  label: string
+  path: string
+  icon: React.ComponentType<{ className?: string }>
+}
+
+interface MenuSection {
+  title: string
+  items: MenuItem[]
+}
 
 function MobileNavContent({ onClose }: { onClose: () => void }) {
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
+  const handleLogout = useLogout()
   const location = useLocation()
+
+  const menuSections = useMemo<MenuSection[]>(() => {
+    const sections: MenuSection[] = [
+      {
+        title: '创作管理',
+        items: [
+          { label: '作品列表', path: '/novels', icon: BookOpen },
+          { label: '新建作品', path: '/novels/new', icon: PenLine },
+        ],
+      },
+      {
+        title: 'AI 审稿',
+        items: [
+          { label: '发起审稿', path: '/reviews/new', icon: Sparkles },
+          { label: '审稿历史', path: '/reviews', icon: History },
+        ],
+      },
+      {
+        title: '积分中心',
+        items: [
+          { label: '积分余额', path: '/credits', icon: Coins },
+          { label: '充值中心', path: '/credits/recharge', icon: Wallet },
+          { label: '交易流水', path: '/credits/transactions', icon: Receipt },
+        ],
+      },
+      {
+        title: '账户',
+        items: [
+          { label: '个人中心', path: '/profile', icon: User },
+        ],
+      },
+    ]
+
+    if (user?.role === 'admin') {
+      sections.push({
+        title: '后台管理',
+        items: [
+          { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
+        ],
+      })
+    }
+
+    return sections
+  }, [user?.role])
 
   return (
     <div className="flex flex-col h-full">
@@ -36,7 +102,8 @@ function MobileNavContent({ onClose }: { onClose: () => void }) {
                   (item.path === '/reviews' && /^\/reviews\/\d+$/.test(location.pathname)) ||
                   (item.path === '/credits' && location.pathname === '/credits') ||
                   (item.path === '/credits/recharge' && location.pathname === '/credits/recharge') ||
-                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions')
+                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions') ||
+                  (item.path === '/admin/ai-models' && location.pathname.startsWith('/admin/ai-models'))
 
                 return (
                   <li key={item.path}>
@@ -76,7 +143,7 @@ function MobileNavContent({ onClose }: { onClose: () => void }) {
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={() => { logout(); onClose() }}
+            onClick={() => { handleLogout(); onClose() }}
           >
             <LogOut className="h-4 w-4" />
             退出登录
