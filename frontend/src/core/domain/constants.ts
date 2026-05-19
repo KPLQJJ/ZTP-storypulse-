@@ -8,10 +8,6 @@ export const REVIEW_DIMENSIONS = [
   { key: 'retention', label: '追读钩子与章节留扣' },
 ] as const
 
-export const AI_MODELS = [
-  { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', creditsPer1kInput: 1, creditsPer1kOutput: 2 },
-] as const
-
 export const NOVEL_GENRES = [
   '玄幻', '奇幻', '武侠', '仙侠', '都市', '现实',
   '历史', '军事', '游戏', '体育', '科幻', '悬疑',

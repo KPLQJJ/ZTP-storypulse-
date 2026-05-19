@@ -1,6 +1,9 @@
 import json
+import logging
 import os
 import httpx
+
+logger = logging.getLogger(__name__)
 
 SEVEN_DIMENSIONS = [
     ("整体判断与市场定位", "评估作品的题材热度、目标读者匹配度、市场竞争力和整体商业潜力"),
@@ -90,7 +93,8 @@ async def call_ai_review(
         )
 
         if resp.status_code != 200:
-            raise RuntimeError(f"AI API 错误 ({resp.status_code}): {resp.text}")
+            logger.error("AI API error %d: %s", resp.status_code, resp.text[:500])
+            raise RuntimeError(f"AI API returned status {resp.status_code}")
 
         data = resp.json()
 
