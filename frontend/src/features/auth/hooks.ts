@@ -1,7 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '@/infrastructure/api/auth-api'
-import { useAuthStore } from '@/infrastructure/stores/auth-store'
 import type { LoginRequest, RegisterRequest } from '@/core/api/types'
 
 export function useLogin(redirectTo = '/novels') {
@@ -23,22 +22,19 @@ export function useRegister(redirectTo = '/novels') {
 }
 
 export function useCurrentUser() {
-  const token = useAuthStore((s) => s.token)
-
   return useQuery({
     queryKey: ['me'],
     queryFn: () => authApi.me(),
-    enabled: !!token,
+    retry: false,
     staleTime: 5 * 60 * 1000,
   })
 }
 
 export function useLogout() {
-  const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
 
   return () => {
-    logout()
+    authApi.logout()
     navigate('/login')
   }
 }

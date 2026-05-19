@@ -19,14 +19,8 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const token = useAuthStore.getState().token
-
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
-  }
-
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`
   }
 
   // Don't set Content-Type for FormData (browser sets it with boundary)
@@ -39,6 +33,7 @@ async function request<T>(
     res = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers,
+      credentials: 'include',
     })
   } catch {
     useToastStore.getState().addToast('error', '网络连接失败，请检查网络后重试')
@@ -65,6 +60,9 @@ async function request<T>(
     if (res.status === 401) {
       useAuthStore.getState().logout()
       useToastStore.getState().addToast('info', '登录已过期，请重新登录')
+    } else if (res.status === 403) {
+      useAuthStore.getState().logout()
+      useToastStore.getState().addToast('error', '权限不足，请重新登录')
     } else {
       useToastStore.getState().addToast('error', data.detail || '请求失败')
     }

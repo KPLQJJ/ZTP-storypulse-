@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BookOpen } from 'lucide-react'
 
 export default function LoginPage() {
-  const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const location = useLocation()
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/novels'
   const login = useLogin(from)
@@ -25,7 +25,7 @@ export default function LoginPage() {
   })
 
   // Already logged in
-  if (token) {
+  if (user) {
     return <Navigate to={from} replace />
   }
 

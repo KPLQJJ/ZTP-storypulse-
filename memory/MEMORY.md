@@ -1,9 +1,3 @@
-- [享学 AI侨杯](xiangxue-xiangxue.md) — 已结束，最终为百宝箱对话式AI智能体 (126条知识库 + 3个快捷指令)
-- [StoryPulse 网文审稿平台](storypulse-project.md) — 进行中，已完成：DB+ORM+FastAPI骨架、文件上传API、AI七维审稿API（含积分扣减）
-- [数学建模竞赛校赛](xiangxue-math-modeling.md) — 优先级降低，StoryPulse 优先
-- [数据方案：静态打包](feedback-data-plan.md) — 已废弃，享学项目转型
-- [登录：延后实现](feedback-no-login.md) — 已废弃，享学项目转型
-- [文件清理：火绒粉碎](feedback-file-cleanup.md) — 彻底删除文件使用火绒粉碎而非rm
-- [CLI优先](feedback-cli-first.md) — GUI自动化不熟练，默认优先CLI方式
-- [记忆日志默认地址](feedback-memory-location.md) — 记忆文件在项目目录下 memory/ 操作
-- [Feature分支+PR协作](feedback-collaboration-workflow.md) — Claude 全程执行 git 操作，memory/ 同步保证两端设备一致
+- [StoryPulse 网文审稿平台](storypulse-project.md) — 进行中，安全加固✅+AI模型后台✅+2FA后端✅（前端2FA待开发），前端5173/后端8765可运行，Phase B悬疑Skill已完成✅
+- [AI 模型后台管理 — 实现方案](admin-models-plan.md) — ✅ 已完成开发，6端点+AdminGuard+审计日志+双Schema隔离
+- [StoryPulse 界面设计原则](storypulse-design-principles.md) — 15条通用设计规范，覆盖信息架构/视觉层次/交互反馈/内容策略/性能感知

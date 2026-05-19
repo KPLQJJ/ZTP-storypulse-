@@ -4,4 +4,5 @@ export interface IAuthApi {
   register(req: RegisterRequest): Promise<TokenResponse>
   login(req: LoginRequest): Promise<TokenResponse>
   me(): Promise<UserOut>
+  logout(): Promise<void>
 }

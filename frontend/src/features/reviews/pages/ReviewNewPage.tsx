@@ -3,11 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useNovels } from '@/features/novels/hooks'
 import { useNovel } from '@/features/novels/hooks'
 import { useCreateReview } from '@/features/reviews/hooks'
-import { AI_MODELS } from '@/core/domain/constants'
+import { useAiModels } from '@/features/ai-models/hooks'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Check, FileText } from 'lucide-react'
 
 export default function ReviewNewPage() {
@@ -17,17 +18,22 @@ export default function ReviewNewPage() {
     preselectedNovelId ? Number(preselectedNovelId) : null,
   )
   const [selectedChapters, setSelectedChapters] = useState<number[]>([])
-  const [modelName, setModelName] = useState<string>(AI_MODELS[0].id)
+  const [selectedModelId, setSelectedModelId] = useState<number>(0)
 
   const { data: novels } = useNovels()
   const { data: novel } = useNovel(selectedNovelId ?? 0)
+  const { data: models, isLoading: modelsLoading } = useAiModels()
   const createReview = useCreateReview()
 
   // Don't fetch novel when none selected
   const novelData = selectedNovelId ? novel : null
   const navigate = useNavigate()
 
-  const model = AI_MODELS.find((m) => m.id === modelName) ?? AI_MODELS[0]
+  // Auto-select first model when list loads
+  const firstModelId = models?.[0]?.id
+  if (firstModelId && selectedModelId === 0) {
+    setSelectedModelId(firstModelId)
+  }
 
   function toggleChapter(chapterId: number) {
     setSelectedChapters((prev) =>
@@ -38,10 +44,10 @@ export default function ReviewNewPage() {
   }
 
   function handleSubmit() {
-    if (!selectedNovelId || selectedChapters.length === 0) return
+    if (!selectedNovelId || selectedChapters.length === 0 || selectedModelId === 0) return
     createReview.mutate({
       novelId: selectedNovelId,
-      req: { chapter_ids: selectedChapters, model_name: modelName },
+      req: { chapter_ids: selectedChapters, model_id: selectedModelId },
     })
   }
 
@@ -140,25 +146,33 @@ export default function ReviewNewPage() {
           {/* Select model */}
           <div>
             <Label>选择模型</Label>
-            <Select value={modelName} onValueChange={setModelName}>
-              <SelectTrigger className="mt-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {AI_MODELS.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {modelsLoading ? (
+              <Skeleton className="h-10 w-full mt-1.5" />
+            ) : !models?.length ? (
+              <p className="mt-1.5 text-sm text-muted-foreground">暂无可用模型</p>
+            ) : (
+              <Select
+                value={selectedModelId ? String(selectedModelId) : ''}
+                onValueChange={(v) => setSelectedModelId(Number(v))}
+              >
+                <SelectTrigger className="mt-1.5">
+                  <SelectValue placeholder="请选择模型" />
+                </SelectTrigger>
+                <SelectContent>
+                  {models.map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.name} ({m.provider})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Cost estimate */}
-          {selectedChapters.length > 0 && (
+          {selectedChapters.length > 0 && selectedModelId > 0 && (
             <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800">
-              预计消耗积分：所选章节总字数 × {model.creditsPer1kInput} 积分/千tokens（输入）
-              + 约 2000 tokens × {model.creditsPer1kOutput} 积分/千tokens（输出）
+              预计消耗积分将根据所选章节总字数和模型定价计算，实际扣减以 AI 返回 token 数为准
             </div>
           )}
 
@@ -172,7 +186,7 @@ export default function ReviewNewPage() {
 
           <Button
             onClick={handleSubmit}
-            disabled={!selectedNovelId || selectedChapters.length === 0 || createReview.isPending}
+            disabled={!selectedNovelId || selectedChapters.length === 0 || selectedModelId === 0 || createReview.isPending}
             variant="brand" className="w-full"
           >
             {createReview.isPending ? 'AI 审稿中...' : '开始 AI 审稿'}
