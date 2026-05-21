@@ -17,17 +17,32 @@ class Novel(Base):
     status = Column(String(20), nullable=False, default="draft")
     word_count = Column(Integer, nullable=False, default=0)
     cover_url = Column(String(500))
+    tags = Column(Text, nullable=False, default="[]")
+    group_id = Column(Integer, ForeignKey("novel_groups.id"))
+    source_type = Column(String(20), nullable=False, default="manual")
+    file_path = Column(String(500))
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     __table_args__ = (
         CheckConstraint("status IN ('draft', 'ongoing', 'completed')", name="ck_novels_status"),
+        CheckConstraint(
+            "source_type IN ('from_scratch', 'import', 'manual')",
+            name="ck_novels_source_type",
+        ),
     )
 
     author = relationship("User", back_populates="novels")
+    group = relationship("NovelGroup", back_populates="novels")
     chapters = relationship("Chapter", back_populates="novel", cascade="all, delete-orphan",
                             order_by="Chapter.chapter_index")
     reviews = relationship("Review", back_populates="novel", cascade="all, delete-orphan")
+    polishes = relationship("Polish", back_populates="novel", cascade="all, delete-orphan")
+    outlines = relationship("Outline", back_populates="novel", cascade="all, delete-orphan")
+    characters = relationship("Character", back_populates="novel", cascade="all, delete-orphan")
+    worldbuilding_entries = relationship("Worldbuilding", back_populates="novel", cascade="all, delete-orphan")
+    agent_configs = relationship("AgentConfig", back_populates="novel", cascade="all, delete-orphan")
+    agent_sessions = relationship("AgentSession", back_populates="novel", cascade="all, delete-orphan")
 
 
 class Chapter(Base):

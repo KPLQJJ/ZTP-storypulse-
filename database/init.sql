@@ -55,7 +55,21 @@ CREATE TABLE IF NOT EXISTS user_memberships (
 CREATE INDEX idx_user_memberships_user_id ON user_memberships(user_id);
 
 -- ============================================================
--- 4. novels
+-- 4. novel_groups — 作品分组
+-- ============================================================
+CREATE TABLE IF NOT EXISTS novel_groups (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name            TEXT    NOT NULL,
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_novel_groups_user_id ON novel_groups(user_id);
+
+-- ============================================================
+-- 5. novels
 -- ============================================================
 CREATE TABLE IF NOT EXISTS novels (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,6 +81,11 @@ CREATE TABLE IF NOT EXISTS novels (
                             CHECK (status IN ('draft', 'ongoing', 'completed')),
     word_count      INTEGER NOT NULL DEFAULT 0,
     cover_url       TEXT,
+    tags            TEXT    NOT NULL DEFAULT '[]',        -- JSON: 网文标签 ["热血","穿越","系统流"]
+    group_id        INTEGER REFERENCES novel_groups(id),
+    source_type     TEXT    NOT NULL DEFAULT 'manual'
+                            CHECK (source_type IN ('from_scratch', 'import', 'manual')),
+    file_path       TEXT,             -- 半成品上传路径（Path B 导入）
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -76,7 +95,7 @@ CREATE INDEX idx_novels_genre   ON novels(genre);
 CREATE INDEX idx_novels_status  ON novels(status);
 
 -- ============================================================
--- 5. chapters
+-- 6. chapters
 -- ============================================================
 CREATE TABLE IF NOT EXISTS chapters (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,7 +121,24 @@ CREATE INDEX idx_chapters_novel_id  ON chapters(novel_id);
 CREATE INDEX idx_chapters_source    ON chapters(source);
 
 -- ============================================================
--- 6. ai_models — AI 模型定价表
+-- 7. api_providers — API 平台账号管理
+-- ============================================================
+CREATE TABLE IF NOT EXISTS api_providers (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                TEXT    NOT NULL UNIQUE,
+    display_name        TEXT    NOT NULL,
+    base_url            TEXT    NOT NULL,
+    api_key             TEXT    NOT NULL,        -- AES256 加密存储
+    is_active           INTEGER NOT NULL DEFAULT 1,
+    health_status       TEXT    NOT NULL DEFAULT 'unknown',
+    last_health_check   TEXT,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    created_at          TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at          TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- ============================================================
+-- 8. ai_models — AI 模型定价表
 --
 -- 定义上游各模型每千 tokens 消耗的平台积分。
 -- 审稿时按实际调用的模型 + tokens 量扣费。
@@ -112,6 +148,10 @@ CREATE TABLE IF NOT EXISTS ai_models (
     name                TEXT    NOT NULL UNIQUE,
     provider            TEXT    NOT NULL,
     model_id            TEXT    NOT NULL,       -- 传给 API 的实际模型 ID
+    provider_id         INTEGER REFERENCES api_providers(id),
+    priority            INTEGER NOT NULL DEFAULT 0,    -- 同 model_id 跨平台优先级（越小越优先）
+    is_fallback         INTEGER NOT NULL DEFAULT 0,    -- 是否备用
+    capability_tags     TEXT    NOT NULL DEFAULT '[]',  -- JSON: ["creative_writing","logic","long_context"]
     credits_per_1k_input   REAL NOT NULL DEFAULT 0,
     credits_per_1k_output  REAL NOT NULL DEFAULT 0,
     is_active           INTEGER NOT NULL DEFAULT 1,
@@ -119,7 +159,24 @@ CREATE TABLE IF NOT EXISTS ai_models (
 );
 
 -- ============================================================
--- 7. reviews
+-- 9. user_model_preferences — 用户模型偏好（全局/按作品）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS user_model_preferences (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    application_type  TEXT    NOT NULL
+                              CHECK (application_type IN ('review', 'polish', 'writing')),
+    model_id          INTEGER NOT NULL REFERENCES ai_models(id),
+    novel_id          INTEGER REFERENCES novels(id) ON DELETE CASCADE,
+    created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(user_id, application_type, novel_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_prefs_user_app ON user_model_preferences(user_id, application_type);
+
+-- ============================================================
+-- 10. reviews
 --
 -- "七维诊断审稿系统"
 -- 以作品为单位，用户自选该作品的若干章节进行审稿。
@@ -141,6 +198,7 @@ CREATE TABLE IF NOT EXISTS reviews (
                             CHECK (reviewer_type IN ('auto_ai', 'manual')),
     status          TEXT    NOT NULL DEFAULT 'completed'
                             CHECK (status IN ('pending', 'completed')),
+    genre_skill_path TEXT,                             -- 本次使用的品类审稿 Skill 路径
     created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -161,7 +219,39 @@ CREATE INDEX idx_reviews_status     ON reviews(status);
 -- ]
 
 -- ============================================================
--- 8. credit_transactions — 积分流水
+-- 11. polishes — AI 润色记录
+--
+-- polish_results JSON 格式示例：
+-- [
+--   {"chapter_index":1, "title":"第1章", "original_text":"...", "polished_text":"...", "changes_summary":"优化了..."},
+--   ...
+-- ]
+-- ============================================================
+CREATE TABLE IF NOT EXISTS polishes (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id          INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    chapter_ids       TEXT    NOT NULL DEFAULT '[]',
+    polish_style      TEXT,                 -- v2: 可空，后期用 Skill 配置替代固定风格
+    input_word_count  INTEGER NOT NULL DEFAULT 0,
+    output_word_count INTEGER NOT NULL DEFAULT 0,
+    polish_results    TEXT    NOT NULL DEFAULT '[]',
+    genre_skill_path  TEXT,                 -- 使用的品类 Skill 文件路径
+    style_skill_path  TEXT,                 -- 使用的风格 Skill 文件路径
+    model_used        TEXT,
+    tokens_input      INTEGER,
+    tokens_output     INTEGER,
+    credits_cost      REAL,
+    status            TEXT    NOT NULL DEFAULT 'completed'
+                              CHECK (status IN ('pending', 'completed', 'failed')),
+    created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at        TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_polishes_novel_id ON polishes(novel_id);
+CREATE INDEX idx_polishes_status   ON polishes(status);
+
+-- ============================================================
+-- 12. credit_transactions — 积分流水
 --
 -- 用户当前余额 = SUM 该用户所有 amount。
 -- 历史数据可审计，不可修改（避免财务纠纷）。
@@ -182,3 +272,122 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
 CREATE INDEX idx_credit_transactions_user_id   ON credit_transactions(user_id);
 CREATE INDEX idx_credit_transactions_type      ON credit_transactions(type);
 CREATE INDEX idx_credit_transactions_created   ON credit_transactions(created_at);
+
+-- ============================================================
+-- 13. audit_logs — 管理员操作审计日志
+-- ============================================================
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         INTEGER REFERENCES users(id),
+    action          TEXT    NOT NULL,
+    target_type     TEXT,
+    target_id       INTEGER,
+    detail          TEXT,
+    ip_address      TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_audit_logs_user_id    ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_action     ON audit_logs(action);
+CREATE INDEX idx_audit_logs_created    ON audit_logs(created_at);
+
+-- ============================================================
+-- 14. outlines — 大纲树（自引用）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS outlines (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    parent_id       INTEGER REFERENCES outlines(id) ON DELETE SET NULL,
+    title           TEXT    NOT NULL,
+    content         TEXT    NOT NULL DEFAULT '',
+    sort_order      INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_outlines_novel_id  ON outlines(novel_id);
+CREATE INDEX idx_outlines_parent_id ON outlines(parent_id);
+
+-- ============================================================
+-- 15. characters — 角色卡
+-- ============================================================
+CREATE TABLE IF NOT EXISTS characters (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    name            TEXT    NOT NULL,
+    description     TEXT    NOT NULL DEFAULT '',
+    attributes      TEXT    NOT NULL DEFAULT '{}',     -- JSON: {"gender":"男","age":25,"role":"主角",...}
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_characters_novel_id ON characters(novel_id);
+
+-- ============================================================
+-- 16. worldbuilding — 世界观条目
+-- ============================================================
+CREATE TABLE IF NOT EXISTS worldbuilding (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    category        TEXT    NOT NULL,        -- 力量体系/地理/历史/社会组织/其他
+    title           TEXT    NOT NULL,
+    content         TEXT    NOT NULL DEFAULT '',
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_worldbuilding_novel_id ON worldbuilding(novel_id);
+CREATE INDEX idx_worldbuilding_category ON worldbuilding(category);
+
+-- ============================================================
+-- 17. agent_configs — Agent 模型配置（per novel）
+-- ============================================================
+CREATE TABLE IF NOT EXISTS agent_configs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    agent_role      TEXT    NOT NULL
+                            CHECK (agent_role IN (
+                                'outline_writer', 'chapter_writer', 'world_builder',
+                                'character_designer', 'polisher', 'reviewer'
+                            )),
+    model_id        INTEGER NOT NULL REFERENCES ai_models(id),
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(novel_id, agent_role)
+);
+
+CREATE INDEX idx_agent_configs_novel_id ON agent_configs(novel_id);
+
+-- ============================================================
+-- 18. agent_sessions — Agent 对话会话
+-- ============================================================
+CREATE TABLE IF NOT EXISTS agent_sessions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    novel_id        INTEGER NOT NULL REFERENCES novels(id) ON DELETE CASCADE,
+    user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    context_type    TEXT,                -- 'chapter' / 'outline' / 'character' / 'worldbuilding' / NULL
+    context_id      INTEGER,             -- 对应实体的 ID
+    title           TEXT,
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_agent_sessions_novel_id ON agent_sessions(novel_id);
+CREATE INDEX idx_agent_sessions_user_id  ON agent_sessions(user_id);
+
+-- ============================================================
+-- 19. agent_messages — 会话消息
+-- ============================================================
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id      INTEGER NOT NULL REFERENCES agent_sessions(id) ON DELETE CASCADE,
+    role            TEXT    NOT NULL
+                            CHECK (role IN ('user', 'assistant', 'system')),
+    agent_name      TEXT,                -- 对应的 Agent 角色名（assistant 消息时填充）
+    content         TEXT    NOT NULL,
+    tokens          INTEGER,             -- token 消耗
+    metadata        TEXT    NOT NULL DEFAULT '{}',   -- JSON: {"model":"...","duration_ms":123}
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_agent_messages_session_id ON agent_messages(session_id);

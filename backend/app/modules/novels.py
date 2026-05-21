@@ -1,11 +1,16 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+import json
+import logging
+from fastapi import APIRouter, HTTPException, Depends, Query, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.content import Novel
 from app.models.user import User
-from app.schemas import NovelCreate, NovelUpdate, NovelOut, NovelDetail
+from app.schemas import NovelCreate, NovelUpdate, NovelOut, NovelDetail, NovelInitV2
 from app.modules.auth import get_current_user
+from app.modules.import_analyzer import analyze_import
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/novels", tags=["novels"])
 
@@ -108,3 +113,103 @@ def delete_novel(
     novel = _get_novel_or_404(db, novel_id, user.id)
     db.delete(novel)
     db.commit()
+
+
+@router.post("/init-v2", response_model=NovelOut, status_code=201)
+def init_novel_v2(
+    req: NovelInitV2,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """v2 创建作品：Path A 从零开始 / Path B 半成品导入"""
+    title = req.title.strip()
+    genre = req.genre.strip() if req.genre else "其他"
+    if not title or len(title) > 200:
+        raise HTTPException(status_code=400, detail="标题须在 1~200 字之间")
+
+    novel = Novel(
+        user_id=user.id,
+        title=title,
+        genre=genre,
+        description=req.description.strip(),
+        tags=json.dumps(req.tags, ensure_ascii=False),
+        source_type=req.source_type,
+        group_id=req.group_id,
+        file_path=req.file_path,
+    )
+    db.add(novel)
+    db.commit()
+    db.refresh(novel)
+    return novel
+
+
+@router.post("/{novel_id}/import")
+def import_novel_file(
+    novel_id: int,
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Path B: upload .txt/.md file for AI analysis."""
+    novel = _get_novel_or_404(db, novel_id, user.id)
+
+    if not file.filename or not file.filename.lower().endswith(('.txt', '.md')):
+        raise HTTPException(status_code=400, detail="仅支持 .txt 和 .md 文件")
+
+    try:
+        raw = file.file.read()
+        # Try UTF-8 first, fall back to GBK
+        try:
+            text = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            text = raw.decode('gbk', errors='replace')
+    except Exception:
+        raise HTTPException(status_code=400, detail="文件读取失败，请检查文件编码")
+
+    if not text.strip():
+        raise HTTPException(status_code=400, detail="文件内容为空")
+
+    analysis = analyze_import(text, file.filename)
+
+    # Update novel with source info
+    novel.source_type = "import"
+    novel.file_path = file.filename
+    db.commit()
+
+    return {
+        "novel_id": novel_id,
+        "total_words": analysis["total_words"],
+        "chapter_count": analysis["chapter_count"],
+        "chapters": analysis["chapters"],
+        "prompts": {
+            "characters": analysis["characters_prompt"],
+            "worldbuilding": analysis["worldbuilding_prompt"],
+            "summary": analysis["summary_prompt"],
+        },
+    }
+
+
+@router.get("/{novel_id}/export")
+def export_novel(
+    novel_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Export novel as plain text (EPUB/PDF planned for later phase)."""
+    novel = _get_novel_or_404(db, novel_id, user.id)
+
+    lines = [f"《{novel.title}》", f"类型：{novel.genre}", f"总字数：{novel.word_count}", "", "=" * 40]
+
+    for ch in novel.chapters:
+        lines.append(f"\n\n第{ch.chapter_index}章 {ch.title}\n")
+        lines.append(ch.content)
+
+    text = '\n'.join(lines)
+
+    return {
+        "novel_id": novel_id,
+        "title": novel.title,
+        "word_count": sum(ch.word_count for ch in novel.chapters),
+        "chapter_count": len(novel.chapters),
+        "text": text,
+    }

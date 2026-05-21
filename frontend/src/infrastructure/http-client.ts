@@ -91,6 +91,13 @@ export const http = {
     })
   },
 
+  put<T>(path: string, body?: unknown): Promise<T> {
+    return request<T>(path, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    })
+  },
+
   delete(path: string): Promise<void> {
     return request<void>(path, { method: 'DELETE' })
   },
