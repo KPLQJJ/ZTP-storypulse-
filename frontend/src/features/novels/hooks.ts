@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { novelsApi } from '@/infrastructure/api/novels-api'
 import { chaptersApi } from '@/infrastructure/api/chapters-api'
 import { useToastStore } from '@/infrastructure/stores/toast-store'
-import type { NovelCreate, NovelUpdate, ChapterUpdate } from '@/core/api/types'
+import type { NovelCreate, NovelUpdate, ChapterUpdate, NovelInitV2 } from '@/core/api/types'
 
 export function useNovels(params?: { page?: number; size?: number; search?: string }) {
   return useQuery({
@@ -60,6 +60,54 @@ export function useDeleteNovel() {
       queryClient.invalidateQueries({ queryKey: ['novels'] })
       addToast('success', '作品已删除')
       navigate('/novels')
+    },
+  })
+}
+
+export function useSetNovelGroup() {
+  const queryClient = useQueryClient()
+  const addToast = useToastStore((s) => s.addToast)
+
+  return useMutation({
+    mutationFn: ({ novelId, groupId }: { novelId: number; groupId: number | null }) =>
+      novelsApi.update(novelId, { group_id: groupId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+      addToast('success', '分组已更新')
+    },
+  })
+}
+
+// ── V2 hooks ──────────────────────────────────────────
+
+export function useCreateNovelV2() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const addToast = useToastStore((s) => s.addToast)
+
+  return useMutation({
+    mutationFn: (req: NovelInitV2) => novelsApi.initV2(req),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+      addToast('success', '作品创建成功')
+      navigate(`/workspace/novel/${data.id}/write`)
+    },
+  })
+}
+
+export function useImportNovel() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const addToast = useToastStore((s) => s.addToast)
+
+  return useMutation({
+    mutationFn: ({ novelId, file }: { novelId: number; file: File }) =>
+      novelsApi.importFile(novelId, file),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['novels'] })
+      queryClient.invalidateQueries({ queryKey: ['novels', variables.novelId] })
+      addToast('success', `导入成功，识别到 ${data.chapter_count} 个章节`)
+      navigate(`/workspace/novel/${variables.novelId}/write`)
     },
   })
 }

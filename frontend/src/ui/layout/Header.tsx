@@ -1,11 +1,14 @@
+import { Fragment } from 'react'
 import { useLocation, Link } from 'react-router-dom'
-import { ChevronRight, Coins, Menu } from 'lucide-react'
+import { ChevronRight, Coins, Menu, LayoutDashboard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUiStore } from '@/infrastructure/stores/ui-store'
 import { useAuthStore } from '@/infrastructure/stores/auth-store'
 import { useBalance } from '@/features/credits/hooks'
 import { useLogout } from '@/features/auth/hooks'
 import { formatCredits } from '@/core/domain/utils'
+import { resolveBreadcrumbs } from '@/core/domain/breadcrumbs'
+import { useBreadcrumbContext } from './BreadcrumbContext'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -17,35 +20,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-const pageTitles: Record<string, string> = {
-  '/': '仪表盘',
-  '/novels': '作品列表',
-  '/novels/new': '新建作品',
-  '/reviews': '审稿历史',
-  '/reviews/new': '发起审稿',
-  '/credits': '积分中心',
-  '/credits/recharge': '充值中心',
-  '/credits/transactions': '交易流水',
-  '/profile': '个人中心',
-}
-
-function getPageTitle(pathname: string): string {
-  // Exact match first
-  if (pageTitles[pathname]) return pageTitles[pathname]
-  // Dynamic routes
-  if (pathname.startsWith('/novels/') && pathname !== '/novels/new') return '作品详情'
-  if (pathname.startsWith('/reviews/') && pathname !== '/reviews/new') return '审稿报告'
-  return 'StoryPulse'
-}
-
 export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { sidebarCollapsed } = useUiStore()
   const { user } = useAuthStore()
   const handleLogout = useLogout()
   const { data: balance } = useBalance()
   const location = useLocation()
+  const { dynamicTitle } = useBreadcrumbContext()
 
-  const title = getPageTitle(location.pathname)
+  const segments = resolveBreadcrumbs(location.pathname, dynamicTitle)
 
   return (
     <header
@@ -54,23 +37,45 @@ export function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         sidebarCollapsed ? 'md:left-16' : 'md:left-60',
       )}
     >
-      {/* Breadcrumb / Title */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-sm min-w-0">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden -ml-2"
+          className="md:hidden -ml-2 shrink-0"
           onClick={onMenuClick}
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <span>首页</span>
-        <ChevronRight className="h-3 w-3" />
-        <span className="font-medium text-foreground">{title}</span>
-      </div>
+        <Link
+          to="/workspace"
+          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          <LayoutDashboard className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">StoryPulse首页</span>
+        </Link>
+
+        {segments.map((seg, i) => (
+          <Fragment key={i}>
+            <ChevronRight className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+            {seg.path ? (
+              <Link
+                to={seg.path}
+                className="text-muted-foreground hover:text-foreground transition-colors truncate max-w-40"
+              >
+                {seg.label}
+              </Link>
+            ) : (
+              <span className="font-medium text-foreground truncate max-w-40">
+                {seg.label}
+              </span>
+            )}
+          </Fragment>
+        ))}
+      </nav>
 
       {/* Right side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 shrink-0">
         {/* Credit badge */}
         <div className="flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-sm text-brand-700">
           <Coins className="h-3.5 w-3.5" />

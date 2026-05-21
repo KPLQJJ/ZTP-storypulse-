@@ -111,7 +111,7 @@ def admin_update_model(
         raise HTTPException(status_code=400, detail="没有需要更新的字段")
 
     # Explicit whitelist — only these fields can be updated
-    allowed = {"name", "provider", "model_id", "credits_per_1k_input", "credits_per_1k_output"}
+    allowed = {"name", "provider", "model_id", "provider_id", "priority", "is_fallback", "capability_tags", "credits_per_1k_input", "credits_per_1k_output"}
     for key, value in updates.items():
         if key not in allowed:
             raise HTTPException(status_code=400, detail=f"不允许修改字段: {key}")

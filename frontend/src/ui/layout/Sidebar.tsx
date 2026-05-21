@@ -1,9 +1,8 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  BookOpen,
   PenLine,
+  Paintbrush,
   Sparkles,
-  History,
   Coins,
   Wallet,
   Receipt,
@@ -12,8 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Cpu,
+  Settings,
+  LayoutDashboard,
 } from 'lucide-react'
-import { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -32,55 +32,69 @@ interface MenuSection {
   items: MenuItem[]
 }
 
+function isItemActive(item: MenuItem, location: ReturnType<typeof useLocation>): boolean {
+  const p = location.pathname
+  if (item.path === '/workspace') return p === '/workspace' || p.startsWith('/workspace/')
+  if (item.path === '/write') return p.startsWith('/write')
+  if (item.path === '/polish') return p.startsWith('/polish')
+  if (item.path === '/review') return p.startsWith('/review')
+  if (item.path === '/credits') return p === '/credits'
+  if (item.path === '/credits/recharge') return p === '/credits/recharge'
+  if (item.path === '/credits/transactions') return p === '/credits/transactions'
+  if (item.path === '/profile') return p === '/profile'
+  if (item.path === '/admin/ai-models') return p.startsWith('/admin/ai-models')
+  if (item.path === '/admin/api-providers') return p === '/admin/api-providers'
+  return p === item.path
+}
+
+const mainSections: MenuSection[] = [
+  {
+    title: '',
+    items: [
+      { label: '工作台', path: '/workspace', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: '功能模块',
+    items: [
+      { label: '创作', path: '/write', icon: PenLine },
+      { label: '润色', path: '/polish', icon: Paintbrush },
+      { label: '审稿', path: '/review', icon: Sparkles },
+    ],
+  },
+  {
+    title: '积分中心',
+    items: [
+      { label: '积分余额', path: '/credits', icon: Coins },
+      { label: '充值中心', path: '/credits/recharge', icon: Wallet },
+      { label: '交易流水', path: '/credits/transactions', icon: Receipt },
+    ],
+  },
+  {
+    title: '账户',
+    items: [
+      { label: '个人中心', path: '/profile', icon: User },
+    ],
+  },
+]
+
+const adminSection: MenuSection = {
+  title: '后台管理',
+  items: [
+    { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
+    { label: 'API 账号', path: '/admin/api-providers', icon: Settings },
+  ],
+}
+
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUiStore()
   const { user } = useAuthStore()
   const handleLogout = useLogout()
   const location = useLocation()
 
-  const menuSections = useMemo<MenuSection[]>(() => {
-    const sections: MenuSection[] = [
-      {
-        title: '创作管理',
-        items: [
-          { label: '作品列表', path: '/novels', icon: BookOpen },
-          { label: '新建作品', path: '/novels/new', icon: PenLine },
-        ],
-      },
-      {
-        title: 'AI 审稿',
-        items: [
-          { label: '发起审稿', path: '/reviews/new', icon: Sparkles },
-          { label: '审稿历史', path: '/reviews', icon: History },
-        ],
-      },
-      {
-        title: '积分中心',
-        items: [
-          { label: '积分余额', path: '/credits', icon: Coins },
-          { label: '充值中心', path: '/credits/recharge', icon: Wallet },
-          { label: '交易流水', path: '/credits/transactions', icon: Receipt },
-        ],
-      },
-      {
-        title: '账户',
-        items: [
-          { label: '个人中心', path: '/profile', icon: User },
-        ],
-      },
-    ]
-
-    if (user?.role === 'admin') {
-      sections.push({
-        title: '后台管理',
-        items: [
-          { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
-        ],
-      })
-    }
-
-    return sections
-  }, [user?.role])
+  const sections = user?.role === 'admin'
+    ? [...mainSections, adminSection]
+    : mainSections
 
   return (
     <aside
@@ -112,31 +126,23 @@ export function Sidebar() {
 
       {/* Menu sections */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-3">
-        {menuSections.map((section) => (
+        {sections.map((section) => (
           <div key={section.title}>
-            {!sidebarCollapsed && (
+            {section.title && !sidebarCollapsed && (
               <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-sidebar-fg/50">
                 {section.title}
               </p>
             )}
             <ul className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive =
-                  location.pathname === item.path ||
-                  (item.path === '/novels' && /^\/novels\/\d+$/.test(location.pathname)) ||
-                  (item.path === '/reviews' && /^\/reviews\/\d+$/.test(location.pathname)) ||
-                  (item.path === '/credits' && location.pathname === '/credits') ||
-                  (item.path === '/credits/recharge' && location.pathname === '/credits/recharge') ||
-                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions') ||
-                  (item.path === '/admin/ai-models' && location.pathname.startsWith('/admin/ai-models'))
-
+                const active = isItemActive(item, location)
                 return (
                   <li key={item.path}>
                     <NavLink
                       to={item.path}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                        isActive
+                        'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors text-sm font-medium',
+                        active
                           ? 'bg-sidebar-active/20 text-sidebar-active'
                           : 'text-sidebar-fg hover:bg-sidebar-hover hover:text-white',
                       )}
@@ -156,7 +162,7 @@ export function Sidebar() {
 
       {/* User area */}
       <div className="p-3">
-        {user ? (
+        {user && (
           <div className={cn(
             'flex items-center gap-3 rounded-lg px-2 py-2',
             sidebarCollapsed && 'justify-center',
@@ -166,16 +172,12 @@ export function Sidebar() {
             </div>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-white">
-                  {user.username}
-                </p>
-                <p className="truncate text-xs text-sidebar-fg/60">
-                  {user.email}
-                </p>
+                <p className="truncate text-sm font-medium text-white">{user.username}</p>
+                <p className="truncate text-xs text-sidebar-fg/60">{user.email}</p>
               </div>
             )}
           </div>
-        ) : null}
+        )}
         {!sidebarCollapsed && (
           <button
             onClick={handleLogout}

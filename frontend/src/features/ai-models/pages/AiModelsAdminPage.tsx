@@ -7,12 +7,20 @@ import {
   useToggleAiModel,
   useDeleteAiModel,
 } from '@/features/ai-models/hooks'
+import { useApiProviders } from '@/features/api-providers/hooks'
 import type { AiModelAdminOut, AiModelCreate, AiModelUpdate } from '@/core/api/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +35,10 @@ interface ModelFormData {
   name: string
   provider: string
   model_id: string
+  provider_id: number | null
+  priority: number
+  is_fallback: number
+  capability_tags: string
   credits_per_1k_input: number
   credits_per_1k_output: number
 }
@@ -35,12 +47,17 @@ const emptyForm: ModelFormData = {
   name: '',
   provider: '',
   model_id: '',
+  provider_id: null,
+  priority: 1,
+  is_fallback: 0,
+  capability_tags: '[]',
   credits_per_1k_input: 0,
   credits_per_1k_output: 0,
 }
 
 export default function AiModelsAdminPage() {
   const { data: models, isLoading } = useAdminAiModels()
+  const { data: providers } = useApiProviders()
   const createModel = useCreateAiModel()
   const updateModel = useUpdateAiModel()
   const toggleModel = useToggleAiModel()
@@ -66,6 +83,10 @@ export default function AiModelsAdminPage() {
       name: model.name,
       provider: model.provider,
       model_id: model.model_id,
+      provider_id: model.provider_id,
+      priority: model.priority,
+      is_fallback: model.is_fallback,
+      capability_tags: model.capability_tags,
       credits_per_1k_input: model.credits_per_1k_input,
       credits_per_1k_output: model.credits_per_1k_output,
     })
@@ -78,6 +99,10 @@ export default function AiModelsAdminPage() {
       if (data.name !== editingModel.name) req.name = data.name
       if (data.provider !== editingModel.provider) req.provider = data.provider
       if (data.model_id !== editingModel.model_id) req.model_id = data.model_id
+      if (data.provider_id !== editingModel.provider_id) req.provider_id = data.provider_id
+      if (data.priority !== editingModel.priority) req.priority = data.priority
+      if (data.is_fallback !== editingModel.is_fallback) req.is_fallback = data.is_fallback
+      if (data.capability_tags !== editingModel.capability_tags) req.capability_tags = data.capability_tags
       if (data.credits_per_1k_input !== editingModel.credits_per_1k_input)
         req.credits_per_1k_input = data.credits_per_1k_input
       if (data.credits_per_1k_output !== editingModel.credits_per_1k_output)
@@ -124,24 +149,30 @@ export default function AiModelsAdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-muted-foreground">
-                    <th className="py-3 px-3 font-medium">名称</th>
-                    <th className="py-3 px-3 font-medium">供应商</th>
-                    <th className="py-3 px-3 font-medium">模型 ID</th>
-                    <th className="py-3 px-3 font-medium text-right">输入价格</th>
-                    <th className="py-3 px-3 font-medium text-right">输出价格</th>
-                    <th className="py-3 px-3 font-medium">状态</th>
-                    <th className="py-3 px-3 font-medium text-right">操作</th>
+                    <th className="py-3 px-2 font-medium">名称</th>
+                    <th className="py-3 px-2 font-medium">供应商</th>
+                    <th className="py-3 px-2 font-medium">模型 ID</th>
+                    <th className="py-3 px-2 font-medium text-center">优先级</th>
+                    <th className="py-3 px-2 font-medium text-center">备用</th>
+                    <th className="py-3 px-2 font-medium text-right">输入价格</th>
+                    <th className="py-3 px-2 font-medium text-right">输出价格</th>
+                    <th className="py-3 px-2 font-medium">状态</th>
+                    <th className="py-3 px-2 font-medium text-right">操作</th>
                   </tr>
                 </thead>
                 <tbody>
                   {models?.map((m) => (
                     <tr key={m.id} className="border-b border-border/60 hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-3 font-medium">{m.name}</td>
-                      <td className="py-3 px-3 text-muted-foreground">{m.provider}</td>
-                      <td className="py-3 px-3 font-mono text-xs text-muted-foreground">{m.model_id}</td>
-                      <td className="py-3 px-3 text-right font-mono text-xs">{m.credits_per_1k_input}</td>
-                      <td className="py-3 px-3 text-right font-mono text-xs">{m.credits_per_1k_output}</td>
-                      <td className="py-3 px-3">
+                      <td className="py-3 px-2 font-medium">{m.name}</td>
+                      <td className="py-3 px-2 text-muted-foreground text-xs">{m.provider}</td>
+                      <td className="py-3 px-2 font-mono text-xs text-muted-foreground">{m.model_id}</td>
+                      <td className="py-3 px-2 text-center text-xs">{m.priority}</td>
+                      <td className="py-3 px-2 text-center">
+                        {m.is_fallback ? <Badge variant="secondary" className="text-xs">备用</Badge> : <span className="text-xs text-muted-foreground">—</span>}
+                      </td>
+                      <td className="py-3 px-2 text-right font-mono text-xs">{m.credits_per_1k_input}</td>
+                      <td className="py-3 px-2 text-right font-mono text-xs">{m.credits_per_1k_output}</td>
+                      <td className="py-3 px-2">
                         <Badge variant={m.is_active === 1 ? 'default' : 'secondary'}>
                           {m.is_active === 1 ? '启用' : '停用'}
                         </Badge>
@@ -185,7 +216,7 @@ export default function AiModelsAdminPage() {
                   ))}
                   {models?.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
                         暂无模型，点击「新建模型」添加
                       </td>
                     </tr>
@@ -218,6 +249,88 @@ export default function AiModelsAdminPage() {
               <Label htmlFor="model_id">模型 ID</Label>
               <Input id="model_id" {...register('model_id', { required: '必填' })} placeholder="如 deepseek-v4-pro" />
               {errors.model_id && <p className="text-xs text-destructive">{errors.model_id.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>关联平台</Label>
+              <Select
+                value={editingModel?.provider_id?.toString() || ''}
+                onValueChange={(v) => {
+                  /* handled via react-hook-form register, we need a hidden input */
+                  const input = document.getElementById('provider_id') as HTMLInputElement
+                  if (input) {
+                    input.value = v || ''
+                    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                      window.HTMLInputElement.prototype, 'value'
+                    )?.set
+                    nativeInputValueSetter?.call(input, v || '')
+                    input.dispatchEvent(new Event('input', { bubbles: true }))
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="不关联 (兼容模式)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(providers || []).map((p) => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.display_name} ({p.name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <input
+                id="provider_id"
+                type="hidden"
+                {...register('provider_id', { valueAsNumber: true })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priority">优先级 (越小越优先)</Label>
+                <Input
+                  id="priority"
+                  type="number"
+                  min="0"
+                  {...register('priority', { valueAsNumber: true, min: 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="is_fallback">备用标记</Label>
+                <Select
+                  value={editingModel?.is_fallback?.toString() || '0'}
+                  onValueChange={(v) => {
+                    const input = document.getElementById('is_fallback') as HTMLInputElement
+                    if (input) {
+                      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                        window.HTMLInputElement.prototype, 'value'
+                      )?.set
+                      nativeInputValueSetter?.call(input, v)
+                      input.dispatchEvent(new Event('input', { bubbles: true }))
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">主力 (0)</SelectItem>
+                    <SelectItem value="1">备用 (1)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <input
+                  id="is_fallback"
+                  type="hidden"
+                  {...register('is_fallback', { valueAsNumber: true })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="capability_tags">能力标签 (JSON)</Label>
+              <Input
+                id="capability_tags"
+                placeholder='["creative","logic","fast"]'
+                {...register('capability_tags')}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

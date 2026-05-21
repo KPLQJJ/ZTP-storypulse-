@@ -14,6 +14,10 @@ from app.models.user import User
 from app.schemas import ReviewRequest, ReviewOut
 from app.review_service import call_ai_review
 from app.modules.auth import get_current_user
+from app.modules.skill_registry import (
+    get_genre_skill,
+    load_skill_content,
+)
 
 router = APIRouter(tags=["reviews"])
 
@@ -29,6 +33,18 @@ def _get_user_balance(db: Session, user_id: int, lock: bool = False) -> float:
         query = query.with_for_update()
     row = query.first()
     return row[0] if row else 0.0
+
+
+def _resolve_genre_skill(novel_genre: str) -> tuple[str, str]:
+    """Resolve genre Skill for review. Returns (genre_skill_path, genre_skill_content)."""
+    genre_skill = get_genre_skill(novel_genre, "review")
+    if genre_skill:
+        genre_path = genre_skill.path
+        genre_content = load_skill_content(genre_path)
+    else:
+        genre_path = ""
+        genre_content = "（无品类专属审稿标准，使用通用七维诊断分析）"
+    return genre_path, genre_content
 
 
 @router.post("/novels/{novel_id}/reviews", response_model=ReviewOut, status_code=201)
@@ -99,9 +115,22 @@ async def create_review(
             detail=f"积分不足，预估消耗 {estimated_cost:.1f}，当前余额 {balance:.1f}",
         )
 
+    # Resolve genre Skill
+    genre_skill_path, genre_skill_content = _resolve_genre_skill(novel.genre)
+
+    # 幂等键（可选）
+    idempotency_key = request.headers.get("X-Idempotency-Key")
+
     # 调 AI 审稿
     try:
-        review_data = await call_ai_review(chapter_data, model.model_id)
+        review_data = await call_ai_review(
+            chapter_data,
+            ai_model_db_id=model.id,
+            genre_skill_content=genre_skill_content,
+            genre_skill_path=genre_skill_path,
+            db=db,
+            idempotency_key=idempotency_key,
+        )
     except ValueError as e:
         logger.error("AI review ValueError: %s", e)
         db.rollback()
@@ -130,6 +159,7 @@ async def create_review(
         chapter_ids=json.dumps(req.chapter_ids),
         overall_score=result.get("overall_score", 0),
         dimensions=json.dumps(result.get("dimensions", []), ensure_ascii=False),
+        genre_skill_path=genre_skill_path or None,
         model_used=model.model_id,
         tokens_input=tokens_in,
         tokens_output=tokens_out,

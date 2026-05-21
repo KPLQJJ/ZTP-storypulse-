@@ -1,12 +1,22 @@
 import { useParams, Link } from 'react-router-dom'
 import { useReview } from '@/features/reviews/hooks'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { parseReviewDimensions, formatDate, formatCredits } from '@/core/domain/utils'
 import { REVIEW_DIMENSIONS } from '@/core/domain/constants'
-import { ArrowLeft, Cpu, Coins, Hash } from 'lucide-react'
+import { ArrowLeft, BookOpen, Cpu, Coins, Hash } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+function skillDisplayName(path: string | null | undefined): string | null {
+  if (!path) return null
+  const parts = path.replace(/\\/g, '/').split('/')
+  if (parts.length >= 3) {
+    return `${parts[parts.length - 3]}·${parts[parts.length - 2]}`
+  }
+  return path
+}
 
 function ScoreBar({ label, score, comment, suggestions }: {
   label: string
@@ -113,6 +123,12 @@ export default function ReviewDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 text-sm text-white/80">
+            {review.genre_skill_path && (
+              <Badge variant="outline" className="gap-1 text-white/80 border-white/20">
+                <BookOpen className="h-3 w-3" />
+                {skillDisplayName(review.genre_skill_path)}
+              </Badge>
+            )}
             <span className="flex items-center gap-1">
               <Cpu className="h-3.5 w-3.5" />
               {review.model_used}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -6,20 +6,21 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { BreadcrumbProvider } from './BreadcrumbContext'
 import { useUiStore } from '@/infrastructure/stores/ui-store'
 import { useAuthStore } from '@/infrastructure/stores/auth-store'
 import { useLogout } from '@/features/auth/hooks'
 import {
-  BookOpen,
   PenLine,
+  Paintbrush,
   Sparkles,
-  History,
   Coins,
-  Wallet,
   Receipt,
   User,
   LogOut,
   Cpu,
+  Settings,
+  LayoutDashboard,
 } from 'lucide-react'
 
 interface MenuItem {
@@ -33,54 +34,66 @@ interface MenuSection {
   items: MenuItem[]
 }
 
+function isMobileActive(path: string, location: ReturnType<typeof useLocation>): boolean {
+  const p = location.pathname
+  if (path === '/workspace') return p === '/workspace' || p.startsWith('/workspace/')
+  if (path === '/write') return p.startsWith('/write')
+  if (path === '/polish') return p.startsWith('/polish')
+  if (path === '/review') return p.startsWith('/review')
+  if (path === '/credits') return p === '/credits' || p === '/credits/transactions'
+  if (path === '/credits/transactions') return p === '/credits/transactions'
+  if (path === '/profile') return p === '/profile'
+  if (path === '/admin/ai-models') return p.startsWith('/admin/ai-models')
+  if (path === '/admin/api-providers') return p === '/admin/api-providers'
+  return p === path
+}
+
+const mobileMainSections: MenuSection[] = [
+  {
+    title: '',
+    items: [
+      { label: '工作台', path: '/workspace', icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: '功能模块',
+    items: [
+      { label: '创作', path: '/write', icon: PenLine },
+      { label: '润色', path: '/polish', icon: Paintbrush },
+      { label: '审稿', path: '/review', icon: Sparkles },
+    ],
+  },
+  {
+    title: '积分中心',
+    items: [
+      { label: '积分余额', path: '/credits', icon: Coins },
+      { label: '交易流水', path: '/credits/transactions', icon: Receipt },
+    ],
+  },
+  {
+    title: '账户',
+    items: [
+      { label: '个人中心', path: '/profile', icon: User },
+    ],
+  },
+]
+
+const mobileAdminSection: MenuSection = {
+  title: '后台管理',
+  items: [
+    { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
+    { label: 'API 账号', path: '/admin/api-providers', icon: Settings },
+  ],
+}
+
 function MobileNavContent({ onClose }: { onClose: () => void }) {
   const { user } = useAuthStore()
   const handleLogout = useLogout()
   const location = useLocation()
 
-  const menuSections = useMemo<MenuSection[]>(() => {
-    const sections: MenuSection[] = [
-      {
-        title: '创作管理',
-        items: [
-          { label: '作品列表', path: '/novels', icon: BookOpen },
-          { label: '新建作品', path: '/novels/new', icon: PenLine },
-        ],
-      },
-      {
-        title: 'AI 审稿',
-        items: [
-          { label: '发起审稿', path: '/reviews/new', icon: Sparkles },
-          { label: '审稿历史', path: '/reviews', icon: History },
-        ],
-      },
-      {
-        title: '积分中心',
-        items: [
-          { label: '积分余额', path: '/credits', icon: Coins },
-          { label: '充值中心', path: '/credits/recharge', icon: Wallet },
-          { label: '交易流水', path: '/credits/transactions', icon: Receipt },
-        ],
-      },
-      {
-        title: '账户',
-        items: [
-          { label: '个人中心', path: '/profile', icon: User },
-        ],
-      },
-    ]
-
-    if (user?.role === 'admin') {
-      sections.push({
-        title: '后台管理',
-        items: [
-          { label: '模型管理', path: '/admin/ai-models', icon: Cpu },
-        ],
-      })
-    }
-
-    return sections
-  }, [user?.role])
+  const sections = user?.role === 'admin'
+    ? [...mobileMainSections, mobileAdminSection]
+    : mobileMainSections
 
   return (
     <div className="flex flex-col h-full">
@@ -89,30 +102,24 @@ function MobileNavContent({ onClose }: { onClose: () => void }) {
       </SheetHeader>
 
       <nav className="flex-1 overflow-y-auto py-4 space-y-3">
-        {menuSections.map((section: MenuSection) => (
+        {sections.map((section: MenuSection) => (
           <div key={section.title}>
-            <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {section.title}
-            </p>
+            {section.title && (
+              <p className="px-3 mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {section.title}
+              </p>
+            )}
             <ul className="space-y-0.5">
               {section.items.map((item: MenuItem) => {
-                const isActive =
-                  location.pathname === item.path ||
-                  (item.path === '/novels' && /^\/novels\/\d+$/.test(location.pathname)) ||
-                  (item.path === '/reviews' && /^\/reviews\/\d+$/.test(location.pathname)) ||
-                  (item.path === '/credits' && location.pathname === '/credits') ||
-                  (item.path === '/credits/recharge' && location.pathname === '/credits/recharge') ||
-                  (item.path === '/credits/transactions' && location.pathname === '/credits/transactions') ||
-                  (item.path === '/admin/ai-models' && location.pathname.startsWith('/admin/ai-models'))
-
+                const active = isMobileActive(item.path, location)
                 return (
                   <li key={item.path}>
                     <NavLink
                       to={item.path}
                       onClick={onClose}
                       className={cn(
-                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                        isActive
+                        'flex items-center gap-3 rounded-lg px-3 py-2 transition-colors text-sm font-medium',
+                        active
                           ? 'bg-brand-50 text-brand-700'
                           : 'hover:bg-gray-100 text-foreground',
                       )}
@@ -181,7 +188,9 @@ export function AppLayout() {
         )}
       >
         <div className="p-4 md:p-6">
-          <Outlet />
+          <BreadcrumbProvider>
+            <Outlet />
+          </BreadcrumbProvider>
         </div>
       </main>
     </div>
