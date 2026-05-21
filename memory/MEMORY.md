@@ -1,0 +1,6 @@
+- [🔴 StoryPulse v2.0 架构重构](architecture-v2-overhaul.md) — 最高优先级，从"审稿工具"转型"网文创作平台"，8阶段实施，工作台+VS Code布局+多Agent协作
+- [StoryPulse 网文审稿平台](storypulse-project.md) — 进行中，安全加固✅+AI模型后台✅+项目清理✅，API账号管理方案已出待开发，Phase B悬疑Skill已完成✅
+- [AI 模型后台管理 — 实现方案](admin-models-plan.md) — ✅ 已完成开发，6端点+AdminGuard+审计日志+双Schema隔离
+- [StoryPulse 界面设计原则](storypulse-design-principles.md) — 15条通用设计规范，覆盖信息架构/视觉层次/交互反馈/内容策略/性能感知
+- [API 账号管理 & 多平台路由 — 待开发模块](api-account-management-plan.md) — 方案已完成，支持火山引擎/硅基流动/Kimi/智谱多平台 Key 管理和按模型最优路由
+- [作品管理架构：服务端为中心](architecture-server-centric.md) — 数据库唯一真相源 + 按需导入/导出，不采用本地文件夹同步，会员付费绑定审稿核心能力

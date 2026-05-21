@@ -1,0 +1,68 @@
+export const ENDPOINTS = {
+  AI_MODELS: {
+    LIST: '/ai-models',
+    ADMIN_LIST: '/admin/ai-models',
+    ADMIN_CREATE: '/admin/ai-models',
+    ADMIN_UPDATE: (id: number) => `/admin/ai-models/${id}`,
+    ADMIN_TOGGLE: (id: number) => `/admin/ai-models/${id}/toggle`,
+    ADMIN_DELETE: (id: number) => `/admin/ai-models/${id}`,
+  },
+  API_PROVIDERS: {
+    ADMIN_LIST: '/admin/api-providers',
+    ADMIN_CREATE: '/admin/api-providers',
+    ADMIN_DETAIL: (id: number) => `/admin/api-providers/${id}`,
+    ADMIN_UPDATE: (id: number) => `/admin/api-providers/${id}`,
+    ADMIN_DELETE: (id: number) => `/admin/api-providers/${id}`,
+    ADMIN_TEST: (id: number) => `/admin/api-providers/${id}/test`,
+  },
+  MODEL_PREFERENCES: {
+    LIST: '/model-preferences',
+    UPSERT: '/model-preferences',
+    DELETE: (id: number) => `/model-preferences/${id}`,
+    RESOLVE: '/model-preferences/resolve',
+  },
+  NOVEL_GROUPS: {
+    LIST: '/novel-groups',
+    CREATE: '/novel-groups',
+    UPDATE: (id: number) => `/novel-groups/${id}`,
+    DELETE: (id: number) => `/novel-groups/${id}`,
+  },
+  OUTLINES: {
+    LIST: (novelId: number) => `/novels/${novelId}/outlines`,
+    CREATE: (novelId: number) => `/novels/${novelId}/outlines`,
+    GET: (id: number) => `/outlines/${id}`,
+    UPDATE: (id: number) => `/outlines/${id}`,
+    DELETE: (id: number) => `/outlines/${id}`,
+  },
+  CHARACTERS: {
+    LIST: (novelId: number) => `/novels/${novelId}/characters`,
+    CREATE: (novelId: number) => `/novels/${novelId}/characters`,
+    GET: (id: number) => `/characters/${id}`,
+    UPDATE: (id: number) => `/characters/${id}`,
+    DELETE: (id: number) => `/characters/${id}`,
+  },
+  WORLDBUILDING: {
+    LIST: (novelId: number) => `/novels/${novelId}/worldbuilding`,
+    CREATE: (novelId: number) => `/novels/${novelId}/worldbuilding`,
+    GET: (id: number) => `/worldbuilding/${id}`,
+    UPDATE: (id: number) => `/worldbuilding/${id}`,
+    DELETE: (id: number) => `/worldbuilding/${id}`,
+  },
+  AGENT_CONFIGS: {
+    LIST: (novelId: number) => `/novels/${novelId}/agent-configs`,
+    UPSERT: (novelId: number) => `/novels/${novelId}/agent-configs`,
+    DELETE: (novelId: number, role: string) => `/novels/${novelId}/agent-configs/${role}`,
+  },
+  AGENT_SESSIONS: {
+    LIST: (novelId: number) => `/novels/${novelId}/sessions`,
+    CREATE: (novelId: number) => `/novels/${novelId}/sessions`,
+    GET: (id: number) => `/sessions/${id}`,
+    DELETE: (id: number) => `/sessions/${id}`,
+    MESSAGES: (id: number) => `/sessions/${id}/messages`,
+  },
+  NOVELS_V2: {
+    INIT: '/novels/init-v2',
+    IMPORT: (id: number) => `/novels/${id}/import`,
+    EXPORT: (id: number) => `/novels/${id}/export`,
+  },
+}

@@ -1,24 +1,63 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+*.egg
 venv/
+.venv/
+
+# Environment files (keep .env.example tracked for documentation)
 .env
+.env.*
+!.env.example
+
+# Database
+*.db
+*.sqlite
+*.db-shm
+*.db-wal
 
 # Node
 node_modules/
 dist/
 
-# Database
-*.db
-*.sqlite
+# Logs
+*.log
+logs/
+
+# Coverage & test
+htmlcov/
+.coverage
+.pytest_cache/
+.tox/
 
 # IDE
 .vscode/
 .idea/
 
+# Editor temp files
+*.swp
+*.swo
+*~
+*.bak
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials*
+!*.example
+
 # OS
 Thumbs.db
 .DS_Store
+
+# Archives (build artifacts)
+*.zip
+*.tar.gz
+*.tgz
 
 # Claude
 .claude/
