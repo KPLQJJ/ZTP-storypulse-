@@ -1,6 +1,6 @@
 ---
 name: storypulse-project
-description: StoryPulse — AI网文创作审稿平台，安全加固+模型后台+2FA后端已完成（前端2FA待开发），前端5173/后端8765可运行，Phase A素材采集+Phase B悬疑Skill已完成
+description: StoryPulse — AI网文创作审稿平台，安全加固+模型后台+2FA已完成，API账号管理方案已出待开发，前端5173/后端8765可运行，Phase B悬疑Skill已完成
 metadata:
   node_type: memory
   type: project
@@ -160,11 +160,26 @@ AI 驱动的网文创作审稿平台，核心差异化功能为七维诊断审�
 - [x] NovelDetailPage 两列布局：左「简介说明」(编辑+文件导入.md/.txt) + 右「上传章节」，同高度居中 (2026-05-18)
 - [x] 简介说明支持 Textarea 编辑保存 + 从 .md/.txt 文件读取导入
 
+### 🧹 项目清理 & 协作流程优化（2026-05-19）
+
+- [x] `.gitignore` 安全规则扩展：env/cert/credentials 屏蔽、HTTP/2 → HTTP/1.1 修复 GitHub push
+- [x] `memory/` 精简：删除 15 个非项目文件（个人偏好/其他项目），仅保留 4 条 StoryPulse 专属记忆
+- [x] PR #2 创建并合并：AI模型后台管理 + 安全加固 + 项目清理（54 files, +2160/-455）
+- [x] 建立 PR 自动合并流程：gh CLI 直接 merge，无需手动去 GitHub 网页确认
+
+### 📋 API 账号管理 & 多平台路由 — 方案完成（2026-05-19）
+
+- [x] 调研 4 大平台（火山引擎/硅基流动/Kimi/智谱）的模型定价和稳定性
+- [x] 确定按模型路由策略：DeepSeek→火山、Qwen→硅基、Kimi→官方、GLM→智谱
+- [x] 方案文档存入 `memory/api-account-management-plan.md`（数据库设计/后端API/前端页面/模型路由引擎/密钥安全）
+- [ ] 待开发
+
 ## 待完成
-1. 管理员 2FA 前端页面（setup/enable/disable UI）— 后端已实现，前端缺失导致开启2FA后无法登录
-2. 联调测试
-3. 会员体系
-4. PostgreSQL 迁移
+1. **API 账号管理 & 多平台路由** — 方案已完成，代码待开发（详见 `memory/api-account-management-plan.md`）
+2. 管理员 2FA 前端页面（setup/enable/disable UI）— 后端已实现，前端缺失导致开启2FA后无法登录
+3. 联调测试
+4. 会员体系
+5. PostgreSQL 迁移
 
 ## 运行状态（2026-05-19）
 

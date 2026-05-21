@@ -30,6 +30,7 @@ class User(Base):
 
     # 关系
     novels = relationship("Novel", back_populates="author")
+    novel_groups = relationship("NovelGroup", back_populates="user", cascade="all, delete-orphan")
     membership = relationship("UserMembership", back_populates="user", uselist=False)
     credit_transactions = relationship("CreditTransaction", back_populates="user")
 

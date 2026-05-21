@@ -35,10 +35,10 @@ INSERT INTO user_memberships (user_id, plan_id, start_date, end_date, status) VA
 -- ============================================================
 -- Novels
 -- ============================================================
-INSERT INTO novels (id, user_id, title, genre, description, status, word_count) VALUES
-    (1, 4, '苍穹之刃',     '玄幻', '少年林尘意外获得上古神兵，从此踏上逆天修行之路。',            'ongoing',   150000),
-    (2, 4, '都市超级高手', '都市', '退伍兵王回归都市，保护妹妹，吊打各路宵小。',                  'ongoing',   200000),
-    (3, 5, '星穹纪元',     '科幻', '公元3024年，人类已在银河系建立联邦，一场未知危机悄然降临。', 'draft',      30000);
+INSERT INTO novels (id, user_id, title, genre, description, status, word_count, tags, source_type) VALUES
+    (1, 4, '苍穹之刃',     '玄幻', '少年林尘意外获得上古神兵，从此踏上逆天修行之路。',            'ongoing',   150000, '["热血","逆袭","系统流"]', 'manual'),
+    (2, 4, '都市超级高手', '都市', '退伍兵王回归都市，保护妹妹，吊打各路宵小。',                  'ongoing',   200000, '["都市","兵王","爽文"]', 'manual'),
+    (3, 5, '星穹纪元',     '科幻', '公元3024年，人类已在银河系建立联邦，一场未知危机悄然降临。', 'draft',      30000,  '["科幻","星际","硬核"]', 'manual');
 
 -- ============================================================
 -- Chapters (each novel has at least 3 chapters for review)
@@ -58,12 +58,45 @@ INSERT INTO chapters (id, novel_id, chapter_index, title, content, word_count, s
     (9, 3, 3, '舰队集结',        '联邦议会在紧急召开三小时后，做出了一个艰难的决定。', 4800, 'published', 'manual', 'txt');
 
 -- ============================================================
--- AI Models Pricing
+-- API Providers
 -- ============================================================
-INSERT INTO ai_models (name, provider, model_id, credits_per_1k_input, credits_per_1k_output) VALUES
-    ('deepseek-v4-flash',  'DeepSeek',   'deepseek-v4-flash',   0.5,  1.0),
-    ('claude-sonnet-4-6',  'Anthropic',  'claude-sonnet-4-6',   2.0,  6.0),
-    ('claude-opus-4-7',    'Anthropic',  'claude-opus-4-7',    10.0, 30.0);
+-- NOTE: api_key values are Fernet-encrypted placeholders for dev.
+-- In production, use POST /admin/api-providers to set real keys.
+INSERT INTO api_providers (id, name, display_name, base_url, api_key, is_active) VALUES
+    (1, 'volcano',      '火山引擎',    'https://ark.cn-beijing.volces.com/api/v3',   'REPLACE_WITH_ENCRYPTED_KEY', 1),
+    (2, 'aliyun_bailian','阿里云百炼',  'https://dashscope.aliyuncs.com/compatible-mode/v1', 'REPLACE_WITH_ENCRYPTED_KEY', 1),
+    (3, 'siliconflow',   '硅基流动',    'https://api.siliconflow.cn',                  'REPLACE_WITH_ENCRYPTED_KEY', 1),
+    (4, 'zhipu',         '智谱AI',      'https://open.bigmodel.cn/api/paas/v4',       'REPLACE_WITH_ENCRYPTED_KEY', 1),
+    (5, 'moonshot',      'Kimi官方',    'https://api.moonshot.cn',                     'REPLACE_WITH_ENCRYPTED_KEY', 1),
+    (6, 'deepseek',      'DeepSeek官方', 'https://api.deepseek.com',                   'REPLACE_WITH_ENCRYPTED_KEY', 1);
+
+-- ============================================================
+-- AI Models Pricing (多平台多态矩阵)
+-- ============================================================
+-- Columns: name, provider, model_id, provider_id, priority, is_fallback, capability_tags, credits_per_1k_input, credits_per_1k_output
+
+-- 🆓 免费层
+INSERT INTO ai_models (name, provider, model_id, provider_id, priority, is_fallback, capability_tags, credits_per_1k_input, credits_per_1k_output) VALUES
+    ('GLM-4-FlashX',   '智谱',      'glm-4-flashx',   4, 1, 0, '["fast","free"]',                0,   0),
+    ('Qwen3-8B',        '硅基流动',  'qwen3-8b',       3, 1, 0, '["fast","free","cn_native"]',     0,   0);
+
+-- 💰 低价层 (输入 < ¥2/M)
+INSERT INTO ai_models (name, provider, model_id, provider_id, priority, is_fallback, capability_tags, credits_per_1k_input, credits_per_1k_output) VALUES
+    ('DeepSeek-V4 Flash', '火山引擎',    'deepseek-v4-flash', 1, 1, 0, '["fast","value","long_context"]', 1,   2),
+    ('DeepSeek-V4 Flash', 'DeepSeek官方','deepseek-v4-flash', 6, 2, 1, '["fast","value","long_context"]', 1,   2),
+    ('GLM-Z1-Air',        '智谱',        'glm-z1-air',        4, 1, 0, '["fast","logic","ultra_fast"]',      0.5, 0.5);
+
+-- 💰💰 标准层 (¥2-10/M 输入)
+INSERT INTO ai_models (name, provider, model_id, provider_id, priority, is_fallback, capability_tags, credits_per_1k_input, credits_per_1k_output) VALUES
+    ('Qwen3-235B',    '阿里云百炼',  'qwen3-235b',  2, 1, 0, '["cn_native","creative","long_context"]',  2.5,  10),
+    ('Qwen3-235B',    '硅基流动',    'qwen3-235b',  3, 2, 1, '["cn_native","creative","long_context"]',  0.65, 4.3),
+    ('Qwen-Max',      '阿里云百炼',  'qwen-max',    2, 1, 0, '["cn_native","creative","premium"]',       5,    20),
+    ('Kimi K2 Thinking','Kimi官方',  'kimi-k2-thinking', 5, 1, 0, '["creative","logic","cn_native"]',   4,    16),
+    ('DeepSeek-V4 Pro','火山引擎',   'deepseek-v4-pro',  1, 1, 0, '["premium","long_context","agent"]', 12,   24);
+
+-- 💰💰💰 高端层 (> ¥10/M)
+INSERT INTO ai_models (name, provider, model_id, provider_id, priority, is_fallback, capability_tags, credits_per_1k_input, credits_per_1k_output) VALUES
+    ('Kimi K2 Turbo', 'Kimi官方',   'kimi-k2-turbo', 5, 1, 0, '["fast","premium","cn_native"]',         16,   64);
 
 -- ============================================================
 -- Reviews
@@ -92,3 +125,55 @@ INSERT INTO credit_transactions (user_id, amount, balance_after, type, reference
     (4,  200,  200,  'recharge', NULL, NULL, '新用户注册赠送'),
     (5,  200,  200,  'recharge', NULL, NULL, '新用户注册赠送'),
     (4, -8.05, 191.95, 'spend', 'review', 1, '苍穹之刃审稿消耗');
+
+-- ============================================================
+-- Novel Groups (v2)
+-- ============================================================
+INSERT INTO novel_groups (id, user_id, name, sort_order) VALUES
+    (1, 4, '科幻系列', 0),
+    (2, 4, '玄幻系列', 1),
+    (3, 5, '未分组',   0);
+
+-- ============================================================
+-- Outlines — 苍穹之刃 大纲树 (v2)
+-- ============================================================
+INSERT INTO outlines (id, novel_id, parent_id, title, content, sort_order) VALUES
+    (1, 1, NULL, '第一卷：崛起之始', '林尘从废柴到宗门新星的成长历程', 0),
+    (2, 1, 1,    '第1章：捡到古剑', '后山奇遇，获得上古神兵', 0),
+    (3, 1, 1,    '第2章：宗门大比', '初露锋芒，一战成名', 1),
+    (4, 1, NULL, '第二卷：风云际会', '走出宗门，天下格局初现', 1),
+    (5, 1, 4,    '入世修行', '下山后的第一个考验', 0);
+
+-- ============================================================
+-- Characters — 苍穹之刃 角色卡 (v2)
+-- ============================================================
+INSERT INTO characters (id, novel_id, name, description, attributes) VALUES
+    (1, 1, '林尘',   '主角，出身平凡但天赋异禀，性格坚毅不服输',    '{"gender":"男","age":17,"role":"主角","cultivation":"练气九层"}'),
+    (2, 1, '赵无极', '宗门大师兄，初期看不起林尘，后成为劲敌',     '{"gender":"男","age":22,"role":"反派/对手","cultivation":"筑基中期"}'),
+    (3, 1, '慕容雪', '宗门第一美女，暗中帮助林尘的神秘女子',        '{"gender":"女","age":18,"role":"女主","cultivation":"筑基初期"}');
+
+-- ============================================================
+-- Worldbuilding — 苍穹之刃 世界观 (v2)
+-- ============================================================
+INSERT INTO worldbuilding (id, novel_id, category, title, content) VALUES
+    (1, 1, '力量体系',  '修炼境界',   '练气→筑基→金丹→元婴→化神→合体→大乘→渡劫，共八境'),
+    (2, 1, '地理',      '青云宗',     '位于东荒苍茫山脉，方圆三千里，宗门弟子三千余人'),
+    (3, 1, '社会组织',  '五大宗门',   '青云宗、无极宗、天剑宗、万妖谷、魔渊殿，维持大陆势力平衡');
+
+-- ============================================================
+-- Agent Configs — 苍穹之刃 Agent 模型配置 (v2)
+-- ============================================================
+INSERT INTO agent_configs (novel_id, agent_role, model_id) VALUES
+    (1, 'outline_writer',     1),   -- GLM-4-FlashX (免费)
+    (1, 'chapter_writer',     3),   -- DeepSeek-V4 Flash (低价)
+    (1, 'world_builder',      10);  -- DeepSeek-V4 Pro (标准)
+
+-- ============================================================
+-- Agent Sessions & Messages (v2)
+-- ============================================================
+INSERT INTO agent_sessions (id, novel_id, user_id, context_type, context_id, title) VALUES
+    (1, 1, 4, 'outline', 1, '大纲规划 — 第一卷讨论');
+
+INSERT INTO agent_messages (session_id, role, agent_name, content, tokens, metadata) VALUES
+    (1, 'user',    NULL,              '帮我规划玄幻小说第一卷的大纲，主角需要经历几次关键战斗', NULL, '{}'),
+    (1, 'assistant', 'outline_writer', '好的！以下是第一卷大纲建议：\n\n1. 意外获得金手指（第1-3章）\n2. 初次战斗，击败欺辱自己的外门弟子（第4-6章）\n3. 宗门大比，越级挑战筑基期师兄（第7-10章）\n...', 450, '{"model":"glm-4-flashx","duration_ms":3200}');

@@ -1,6 +1,6 @@
 ---
 name: admin-models-plan
-description: AI 模型后台管理模块完整实现方案 — 后端 CRUD API + 前端管理页 + 审稿页动态模型列表 + 安全设计
+description: AI 模型后台管理模块 — ✅ 已完成开发（2026-05-19），6端点+AdminGuard+审计日志+双Schema隔离
 metadata:
   type: project
 ---

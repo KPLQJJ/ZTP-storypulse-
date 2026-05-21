@@ -5,18 +5,32 @@ import { AuthGuard } from '@/ui/layout/AuthGuard'
 import { AdminGuard } from '@/ui/layout/AdminGuard'
 import { AppProviders } from './providers'
 
-// Lazy-loaded page placeholders (replaced by real pages as we build features)
+// Auth
 const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'))
 const RegisterPage = lazy(() => import('@/features/auth/pages/RegisterPage'))
-const NovelListPage = lazy(() => import('@/features/novels/pages/NovelListPage'))
-const NovelCreatePage = lazy(() => import('@/features/novels/pages/NovelCreatePage'))
-const NovelDetailPage = lazy(() => import('@/features/novels/pages/NovelDetailPage'))
+
+// Workspace
+const WorkspacePage = lazy(() => import('@/features/workspace/pages/WorkspacePage'))
+const NovelDashboardPage = lazy(() => import('@/features/workspace/pages/NovelDashboardPage'))
+
+// Hub pages
+const WriteHubPage = lazy(() => import('@/features/workspace/pages/WriteHubPage'))
+const PolishHubPage = lazy(() => import('@/features/workspace/pages/PolishHubPage'))
+const ReviewHubPage = lazy(() => import('@/features/workspace/pages/ReviewHubPage'))
+
+// Detail pages
+const WritePage = lazy(() => import('@/features/workspace/pages/WritePage'))
+const PolishPage = lazy(() => import('@/features/workshop/pages/PolishPage'))
 const ReviewNewPage = lazy(() => import('@/features/reviews/pages/ReviewNewPage'))
 const ReviewDetailPage = lazy(() => import('@/features/reviews/pages/ReviewDetailPage'))
-const ReviewListPage = lazy(() => import('@/features/reviews/pages/ReviewListPage'))
+
+// Credits & Profile
 const CreditsPage = lazy(() => import('@/features/credits/pages/CreditsPage'))
 const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage'))
+
+// Admin
 const AiModelsAdminPage = lazy(() => import('@/features/ai-models/pages/AiModelsAdminPage'))
+const ApiProvidersAdminPage = lazy(() => import('@/features/api-providers/pages/ApiProvidersAdminPage'))
 
 function Loading() {
   return (
@@ -31,23 +45,30 @@ export function AppRouter() {
     <AppProviders>
       <Suspense fallback={<Loading />}>
         <Routes>
-          {/* Public routes */}
+          {/* Public */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* Protected routes */}
+          {/* Protected */}
           <Route element={<AuthGuard />}>
             <Route element={<AppLayout />}>
-              <Route path="/" element={<Navigate to="/novels" replace />} />
+              {/* Root redirect */}
+              <Route path="/" element={<Navigate to="/workspace" replace />} />
 
-              {/* Novels */}
-              <Route path="/novels" element={<NovelListPage />} />
-              <Route path="/novels/new" element={<NovelCreatePage />} />
-              <Route path="/novels/:id" element={<NovelDetailPage />} />
+              {/* Workspace */}
+              <Route path="/workspace" element={<WorkspacePage />} />
+              <Route path="/workspace/novel/:id" element={<NovelDashboardPage />} />
+              <Route path="/workspace/novel/:id/write" element={<WritePage />} />
+              <Route path="/workspace/novel/:id/polish" element={<PolishPage />} />
+              <Route path="/workspace/novel/:id/review" element={<ReviewNewPage />} />
 
-              {/* Reviews */}
-              <Route path="/reviews" element={<ReviewListPage />} />
-              <Route path="/reviews/new" element={<ReviewNewPage />} />
+              {/* Hub — standalone entry points */}
+              <Route path="/write" element={<WriteHubPage />} />
+              <Route path="/write/novel/:id" element={<WritePage />} />
+              <Route path="/polish" element={<PolishHubPage />} />
+              <Route path="/polish/novel/:id" element={<PolishPage />} />
+              <Route path="/review" element={<ReviewHubPage />} />
+              <Route path="/review/novel/:id" element={<ReviewNewPage />} />
               <Route path="/reviews/:id" element={<ReviewDetailPage />} />
 
               {/* Credits */}
@@ -59,10 +80,11 @@ export function AppRouter() {
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
-            {/* Admin routes */}
+            {/* Admin */}
             <Route element={<AdminGuard />}>
               <Route element={<AppLayout />}>
                 <Route path="/admin/ai-models" element={<AiModelsAdminPage />} />
+                <Route path="/admin/api-providers" element={<ApiProvidersAdminPage />} />
               </Route>
             </Route>
           </Route>
