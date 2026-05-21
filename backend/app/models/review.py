@@ -21,6 +21,7 @@ class Review(Base):
     summary = Column(Text)
     suggestions = Column(Text)
     reviewer_type = Column(String(20), nullable=False, default="auto_ai")
+    genre_skill_path = Column(Text)
     status = Column(String(20), nullable=False, default="completed")
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)

@@ -1,198 +1,299 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useNovels } from '@/features/novels/hooks'
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { useNovel } from '@/features/novels/hooks'
-import { useCreateReview } from '@/features/reviews/hooks'
+import { useBreadcrumbTitle } from '@/ui/layout/BreadcrumbContext'
+import { useCreateReview, useReviews } from '@/features/reviews/hooks'
 import { useAiModels } from '@/features/ai-models/hooks'
+import { ThreePanelLayout } from '@/ui/components/ThreePanelLayout'
+import { SelectableChapterList } from '@/features/workspace/components/SelectableChapterList'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Check, FileText } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatDate, parseReviewDimensions } from '@/core/domain/utils'
+import {
+  BookOpen, Cpu, ChevronRight, Sparkles, Star, Clock, ListTree,
+} from 'lucide-react'
 
 export default function ReviewNewPage() {
-  const [searchParams] = useSearchParams()
-  const preselectedNovelId = searchParams.get('novel')
-  const [selectedNovelId, setSelectedNovelId] = useState<number | null>(
-    preselectedNovelId ? Number(preselectedNovelId) : null,
-  )
+  const { id } = useParams<{ id: string }>()
+  const novelId = Number(id)
+
+  const { data: novel, isLoading: novelLoading } = useNovel(novelId)
+  useBreadcrumbTitle(novel?.title)
+  const { data: models, isLoading: modelsLoading } = useAiModels()
+  const { data: reviews, isLoading: reviewsLoading } = useReviews(novelId)
+  const createReview = useCreateReview()
+
   const [selectedChapters, setSelectedChapters] = useState<number[]>([])
   const [selectedModelId, setSelectedModelId] = useState<number>(0)
 
-  const { data: novels } = useNovels()
-  const { data: novel } = useNovel(selectedNovelId ?? 0)
-  const { data: models, isLoading: modelsLoading } = useAiModels()
-  const createReview = useCreateReview()
+  const chapters = novel?.chapters ?? []
 
-  // Don't fetch novel when none selected
-  const novelData = selectedNovelId ? novel : null
-  const navigate = useNavigate()
+  useEffect(() => {
+    const first = models?.[0]?.id
+    if (first && selectedModelId === 0) setSelectedModelId(first)
+  }, [models, selectedModelId])
 
-  // Auto-select first model when list loads
-  const firstModelId = models?.[0]?.id
-  if (firstModelId && selectedModelId === 0) {
-    setSelectedModelId(firstModelId)
-  }
-
-  function toggleChapter(chapterId: number) {
+  function toggleChapter(id: number) {
     setSelectedChapters((prev) =>
-      prev.includes(chapterId)
-        ? prev.filter((id) => id !== chapterId)
-        : [...prev, chapterId],
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     )
   }
 
+  function selectAll() { setSelectedChapters(chapters.map((c) => c.id)) }
+  function deselectAll() { setSelectedChapters([]) }
+
   function handleSubmit() {
-    if (!selectedNovelId || selectedChapters.length === 0 || selectedModelId === 0) return
+    if (selectedChapters.length === 0 || selectedModelId === 0) return
     createReview.mutate({
-      novelId: selectedNovelId,
+      novelId,
       req: { chapter_ids: selectedChapters, model_id: selectedModelId },
     })
+    setSelectedChapters([])
   }
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      <button
-        onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        返回
-      </button>
+  const selectedWordCount = chapters
+    .filter((c) => selectedChapters.includes(c.id))
+    .reduce((sum, c) => sum + c.word_count, 0)
 
-      <Card>
-        <CardHeader>
-          <CardTitle>发起 AI 审稿</CardTitle>
-          <CardDescription>
-            选择作品和章节，AI 将从七个维度进行全面诊断
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Select novel */}
-          {!preselectedNovelId && (
-            <div>
-              <Label>选择作品</Label>
-              <Select
-                value={selectedNovelId?.toString() ?? ''}
-                onValueChange={(v) => {
-                  setSelectedNovelId(v ? Number(v) : null)
-                  setSelectedChapters([])
-                }}
-              >
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="请选择作品" />
-                </SelectTrigger>
-                <SelectContent>
-                  {novels?.map((n) => (
-                    <SelectItem key={n.id} value={String(n.id)}>
-                      {n.title} ({n.word_count} 字)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+  // ── Left: Dual-tab sidebar ──────────────────────────────
 
-          {/* Select chapters */}
-          {novelData && (
-            <div>
-              <Label>
-                选择章节（已选 {selectedChapters.length} 个）
-              </Label>
-              {!novelData.chapters?.length ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  该作品还没有章节，请先上传章节
-                </p>
-              ) : (
-                <div className="mt-2 space-y-1 max-h-48 overflow-y-auto border rounded-lg p-2">
-                  {novelData.chapters.map((ch) => {
-                    const isSelected = selectedChapters.includes(ch.id)
-                    return (
-                      <button
-                        key={ch.id}
-                        type="button"
-                        className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-left transition-colors ${
-                          isSelected
-                            ? 'bg-brand-50 text-brand-700'
-                            : 'hover:bg-gray-50'
-                        }`}
-                        onClick={() => toggleChapter(ch.id)}
-                      >
-                        <div
-                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
-                            isSelected
-                              ? 'border-brand-600 bg-brand-600 text-white'
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          {isSelected && <Check className="h-3 w-3" />}
+  const leftContent = (
+    <div className="flex flex-col h-full">
+      <Tabs defaultValue="chapters" className="flex flex-col h-full">
+        <TabsList className="shrink-0 mx-2 mt-2 grid grid-cols-2 h-9">
+          <TabsTrigger value="chapters" className="text-xs gap-1">
+            <ListTree className="h-3.5 w-3.5" />
+            选择章节
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xs gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            审查历史
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="chapters" className="flex-1 m-0 data-[state=inactive]:hidden">
+          <div className="px-4 py-2 border-b border-border/40 shrink-0">
+            {selectedChapters.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                已选 {selectedChapters.length} 章 · {selectedWordCount.toLocaleString()} 字
+              </p>
+            )}
+          </div>
+          <ScrollArea className="h-full px-3 py-2">
+            <SelectableChapterList
+              chapters={chapters}
+              selectedIds={selectedChapters}
+              onToggle={toggleChapter}
+              onSelectAll={selectAll}
+              onDeselectAll={deselectAll}
+            />
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="history" className="flex-1 m-0 data-[state=inactive]:hidden">
+          <ScrollArea className="h-full p-2">
+            {reviewsLoading ? (
+              <div className="space-y-2 p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : !reviews?.length ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto text-muted-foreground/20 mb-2" />
+                <p className="text-xs">暂无审稿记录</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {reviews.map((review) => {
+                  const dimensions = parseReviewDimensions(review.dimensions)
+                  return (
+                    <Link
+                      key={review.id}
+                      to={`/reviews/${review.id}`}
+                      className="block w-full text-left p-3 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-1 text-amber-500">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span className="text-sm font-bold">{review.overall_score}</span>
                         </div>
-                        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span>
-                          第 {ch.chapter_index} 章 · {ch.title}
-                        </span>
-                        <span className="ml-auto text-xs text-muted-foreground">
-                          {ch.word_count} 字
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+                        <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
+                      </div>
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {dimensions.slice(0, 3).map((d) => (
+                          <Badge key={d.label} variant="secondary" className="text-xs py-0">
+                            {d.label}: {d.score}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1"><Cpu className="h-3 w-3" />{review.model_used ?? '未知'}</span>
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{formatDate(review.created_at)}</span>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
 
-          {/* Select model */}
+  // ── Center: Form ────────────────────────────────────────
+
+  const centerContent = (
+    <div className="flex flex-col h-full">
+      <div className="px-4 py-3 border-b border-border bg-white/80 shrink-0">
+        <h2 className="text-lg font-semibold">发起 AI 审稿</h2>
+        {novel && <p className="text-xs text-muted-foreground mt-0.5">{novel.title}</p>}
+      </div>
+      <ScrollArea className="flex-1 p-4">
+        {novelLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : (
+          <div className="space-y-6 max-w-lg">
+            {/* Review standard info */}
+            {novel && (
+              <div className="rounded-lg border border-brand-200 bg-brand-50/50 px-4 py-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-brand-600 shrink-0" />
+                  <span className="text-brand-800">
+                    <span className="font-medium">审稿标准：</span>
+                    多维度综合审稿标准
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-brand-600/70 ml-6">
+                  AI 将依据网文写作特征从七个维度进行全面诊断
+                </p>
+              </div>
+            )}
+
+            {/* Cost estimate */}
+            {selectedChapters.length > 0 && selectedModelId > 0 && (
+              <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800">
+                已选 {selectedChapters.length} 个章节，共 {selectedWordCount.toLocaleString()} 字。
+                将从七个维度进行全面诊断，预计消耗积分根据模型定价计算。
+              </div>
+            )}
+
+            {createReview.error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                {createReview.error instanceof Error ? createReview.error.message : '审稿失败'}
+              </p>
+            )}
+
+            <Button
+              onClick={handleSubmit}
+              disabled={selectedChapters.length === 0 || selectedModelId === 0 || createReview.isPending}
+              variant="brand"
+              className="w-full"
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              {createReview.isPending ? 'AI 审稿中...' : '开始 AI 审稿'}
+            </Button>
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  )
+
+  // ── Right: Model + History ──────────────────────────────
+
+  const rightContent = (
+    <div className="flex flex-col h-full">
+      <ScrollArea className="flex-1">
+        <div className="p-3 space-y-4">
+          {/* Model selection */}
           <div>
-            <Label>选择模型</Label>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">选择模型</Label>
             {modelsLoading ? (
-              <Skeleton className="h-10 w-full mt-1.5" />
+              <Skeleton className="h-9 w-full mt-1.5" />
             ) : !models?.length ? (
-              <p className="mt-1.5 text-sm text-muted-foreground">暂无可用模型</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">暂无可用模型</p>
             ) : (
               <Select
                 value={selectedModelId ? String(selectedModelId) : ''}
                 onValueChange={(v) => setSelectedModelId(Number(v))}
               >
-                <SelectTrigger className="mt-1.5">
+                <SelectTrigger className="mt-1.5 h-8 text-xs">
                   <SelectValue placeholder="请选择模型" />
                 </SelectTrigger>
                 <SelectContent>
                   {models.map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>
-                      {m.name} ({m.provider})
-                    </SelectItem>
+                    <SelectItem key={m.id} value={String(m.id)}>{m.name} ({m.provider})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             )}
           </div>
 
-          {/* Cost estimate */}
-          {selectedChapters.length > 0 && selectedModelId > 0 && (
-            <div className="rounded-lg bg-brand-50 px-4 py-3 text-sm text-brand-800">
-              预计消耗积分将根据所选章节总字数和模型定价计算，实际扣减以 AI 返回 token 数为准
-            </div>
-          )}
+          {/* Review history */}
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              审稿历史
+            </h4>
+            {reviewsLoading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full rounded-lg" />
+                ))}
+              </div>
+            ) : !reviews?.length ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">暂无审稿记录</p>
+            ) : (
+              <div className="space-y-1">
+                {reviews.map((review) => {
+                  const dimensions = parseReviewDimensions(review.dimensions)
+                  return (
+                    <Link
+                      key={review.id}
+                      to={`/reviews/${review.id}`}
+                      className="block w-full text-left p-2.5 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-1 text-amber-500">
+                          <Star className="h-3.5 w-3.5 fill-current" />
+                          <span className="text-sm font-bold">{review.overall_score}</span>
+                        </div>
+                        <ChevronRight className="h-3 w-3 text-muted-foreground ml-auto" />
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {dimensions.slice(0, 3).map((d) => (
+                          <Badge key={d.label} variant="secondary" className="text-xs py-0">
+                            {d.label}: {d.score}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  )
 
-          {createReview.error && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-              {createReview.error instanceof Error
-                ? createReview.error.message
-                : '审稿失败'}
-            </p>
-          )}
-
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedNovelId || selectedChapters.length === 0 || selectedModelId === 0 || createReview.isPending}
-            variant="brand" className="w-full"
-          >
-            {createReview.isPending ? 'AI 审稿中...' : '开始 AI 审稿'}
-          </Button>
-        </CardContent>
-      </Card>
+  return (
+    <div className="-m-4 md:-m-6">
+      <ThreePanelLayout
+        left={leftContent}
+        center={centerContent}
+        right={rightContent}
+      />
     </div>
   )
 }

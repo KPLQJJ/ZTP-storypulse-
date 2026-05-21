@@ -13,10 +13,16 @@ class AiModel(Base):
     name = Column(String(100), nullable=False, unique=True)
     provider = Column(String(50), nullable=False)
     model_id = Column(String(100), nullable=False)
+    provider_id = Column(Integer, ForeignKey("api_providers.id"), nullable=True)
+    priority = Column(Integer, nullable=False, default=0)
+    is_fallback = Column(Integer, nullable=False, default=0)
+    capability_tags = Column(Text, nullable=False, default="[]")
     credits_per_1k_input = Column(Float, nullable=False, default=0)
     credits_per_1k_output = Column(Float, nullable=False, default=0)
     is_active = Column(Integer, nullable=False, default=1, server_default=text("1"))
     created_at = Column(DateTime, nullable=False, default=datetime.now)
+
+    api_provider = relationship("ApiProvider")
 
 
 class CreditTransaction(Base):

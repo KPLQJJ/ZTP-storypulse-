@@ -22,6 +22,8 @@ export function formatDate(isoString: string): string {
   return `${y}-${m}-${day} ${h}:${min}`
 }
 
+import type { PolishChapterResult } from '@/core/api/types'
+
 export function parseReviewDimensions(dimensionsJson: string): Array<{
   label: string
   score: number
@@ -30,6 +32,14 @@ export function parseReviewDimensions(dimensionsJson: string): Array<{
 }> {
   try {
     return JSON.parse(dimensionsJson)
+  } catch {
+    return []
+  }
+}
+
+export function parsePolishResults(resultsJson: string): PolishChapterResult[] {
+  try {
+    return JSON.parse(resultsJson)
   } catch {
     return []
   }
